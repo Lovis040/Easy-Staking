@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Easy Staking — One-Click Cross-Chain Staking</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0A0E1A;
+    --surface: #111827;
+    --panel: #1A2340;
+    --border: #1E2D4A;
+    --cyan: #00E5FF;
+    --purple: #9945FF;
+    --frost: #F0F4FF;
+    --muted: #8B9BC8;
+    --green: #22C55E;
+    --red: #EF4444;
+    --gold: #F59E0B;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--frost);
+    font-family: 'Space Grotesk', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  #bg-canvas {
+    position: fixed; top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none; z-index: 0; opacity: 0.45;
+  }
+
+  /* ── NAV ── */
+  nav {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(10,14,26,0.88);
+    backdrop-filter: blur(18px);
+    border-bottom: 1px solid var(--border);
+    padding: 0 2rem;
+    height: 64px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 1.15rem; font-weight: 700;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    letter-spacing: 0.05em;
+    flex-shrink: 0;
+    margin-right: 2rem;
+    animation: fadeSlideIn 0.6s ease both;
+  }
+
+  /* Nav tabs sit right next to logo */
+  .nav-tabs {
+    display: flex;
+    align-items: stretch;
+    height: 64px;
+    flex: 1;
+    gap: 0;
+  }
+
+  .nav-tab {
+    padding: 0 1.35rem;
+    background: none; border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem; font-weight: 500;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 0.45rem;
+    transition: color 0.2s, border-color 0.2s;
+    white-space: nowrap;
+    animation: fadeSlideIn 0.6s ease both;
+  }
+
+  .nav-tab:nth-child(1) { animation-delay: 0.05s; }
+  .nav-tab:nth-child(2) { animation-delay: 0.1s; }
+  .nav-tab:nth-child(3) { animation-delay: 0.15s; }
+  .nav-tab:nth-child(4) { animation-delay: 0.2s; }
+
+  .nav-tab:hover { color: var(--frost); }
+  .nav-tab.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+  .tab-badge {
+    background: var(--panel);
+    color: var(--cyan);
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem;
+    padding: 0.12rem 0.4rem;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+  }
+
+  .nav-right {
+    display: flex; align-items: center; gap: 1rem;
+    margin-left: auto;
+  }
+
+  .chainlink-badge {
+    display: inline-flex; align-items: center; gap: 0.3rem;
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    color: #375BD2;
+    background: rgba(55,91,210,0.1);
+    border: 1px solid rgba(55,91,210,0.25);
+    padding: 0.18rem 0.5rem; border-radius: 4px;
+  }
+
+  .chainlink-dot {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #375BD2; animation: pulse 1.5s infinite;
+  }
+
+  .wallet-btn {
+    padding: 0.5rem 1.25rem; border-radius: 8px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--frost);
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.85rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .wallet-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+  .wallet-btn.connected { border-color: var(--green); color: var(--green); }
+  .wallet-btn .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(-8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+  }
+
+  @keyframes shimmer {
+    0%   { background-position: -400px 0; }
+    100% { background-position: 400px 0; }
+  }
+
+  @keyframes glow {
+    0%,100% { box-shadow: 0 0 8px rgba(0,229,255,0.2); }
+    50%      { box-shadow: 0 0 22px rgba(0,229,255,0.5), 0 0 40px rgba(153,69,255,0.2); }
+  }
+
+  @keyframes float {
+    0%,100% { transform: translateY(0); }
+    50%      { transform: translateY(-6px); }
+  }
+
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  @keyframes flow {
+    0%   { left:0%;  opacity:0; }
+    10%  { opacity:1; }
+    90%  { opacity:1; }
+    100% { left:100%; opacity:0; }
+  }
+
+  @keyframes countUp {
+    from { opacity: 0; transform: scale(0.8); }
+    to   { opacity: 1; transform: scale(1); }
+  }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    padding: 3rem 2rem 2rem;
+    max-width: 1200px; margin: 0 auto;
+  }
+
+  .hero-tag {
+    display: inline-block;
+    font-family: 'Space Mono', monospace;
+    font-size: 0.7rem; letter-spacing: 0.15em;
+    text-transform: uppercase; color: var(--cyan);
+    border: 1px solid var(--cyan);
+    padding: 0.25rem 0.75rem; border-radius: 4px;
+    margin-bottom: 1.25rem; opacity: 0.8;
+    animation: fadeSlideUp 0.7s ease both;
+  }
+
+  .hero h1 {
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 700; line-height: 1.1;
+    max-width: 700px; margin-bottom: 1rem;
+    animation: fadeSlideUp 0.7s 0.1s ease both;
+  }
+
+  .hero h1 span {
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    background-size: 200% auto;
+    animation: shimmerText 3s linear infinite;
+  }
+
+  @keyframes shimmerText {
+    0%   { background-position: 0% center; }
+    100% { background-position: 200% center; }
+  }
+
+  .hero-sub {
+    color: var(--muted); font-size: 1rem;
+    max-width: 540px; line-height: 1.6;
+    margin-bottom: 1.5rem;
+    animation: fadeSlideUp 0.7s 0.2s ease both;
+  }
+
+  /* ── PITCH STRIP ── */
+  .pitch-strip {
+    display: flex; gap: 1rem;
+    margin-bottom: 2rem;
+    animation: fadeSlideUp 0.7s 0.3s ease both;
+    flex-wrap: wrap;
+  }
+
+  .pitch-card {
+    flex: 1; min-width: 200px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 1.1rem 1.3rem;
+    transition: border-color 0.3s, transform 0.3s;
+    position: relative; overflow: hidden;
+  }
+
+  .pitch-card::before {
+    content: '';
+    position: absolute; top: 0; left: -100%;
+    width: 60%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,229,255,0.04), transparent);
+    transition: left 0.5s;
+  }
+
+  .pitch-card:hover::before { left: 140%; }
+  .pitch-card:hover { border-color: rgba(0,229,255,0.35); transform: translateY(-3px); }
+
+  .pitch-step {
+    font-family: 'Space Mono', monospace;
+    font-size: 0.6rem; color: var(--cyan);
+    letter-spacing: 0.12em; text-transform: uppercase;
+    margin-bottom: 0.4rem;
+  }
+
+  .pitch-card h4 {
+    font-size: 0.88rem; font-weight: 700; margin-bottom: 0.3rem;
+  }
+
+  .pitch-card p {
+    font-size: 0.75rem; color: var(--muted); line-height: 1.5;
+  }
+
+  /* ── BRIDGE VISUALIZER ── */
+  .bridge-visual {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    margin-bottom: 2.5rem;
+    display: flex; align-items: center; gap: 0;
+    overflow: hidden; position: relative;
+    animation: fadeSlideUp 0.7s 0.4s ease both;
+    animation-name: glow, fadeSlideUp;
+    animation-duration: 4s, 0.7s;
+    animation-delay: 2s, 0.4s;
+    animation-iteration-count: infinite, 1;
+    animation-fill-mode: none, both;
+  }
+
+  .chain-node {
+    display: flex; flex-direction: column;
+    align-items: center; gap: 0.4rem;
+    flex-shrink: 0; z-index: 2;
+  }
+
+  .chain-icon {
+    width: 48px; height: 48px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; border: 2px solid;
+    transition: transform 0.3s;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .chain-node:nth-child(1) .chain-icon { animation-delay: 0s; }
+  .chain-node:nth-child(3) .chain-icon { animation-delay: 0.5s; }
+  .chain-node:nth-child(5) .chain-icon { animation-delay: 1s; }
+  .chain-node:nth-child(7) .chain-icon { animation-delay: 1.5s; }
+
+  .chain-icon:hover { transform: scale(1.15) !important; }
+  .chain-icon.eth { border-color: var(--cyan); background: rgba(0,229,255,0.1); }
+  .chain-icon.arb { border-color: #8b9cf0; background: rgba(139,156,240,0.1); }
+  .chain-icon.sol { border-color: var(--purple); background: rgba(153,69,255,0.1); }
+
+  .chain-label {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  .bridge-arrow {
+    flex: 1; position: relative; height: 2px;
+    margin: 0 1rem; overflow: visible;
+  }
+
+  .bridge-line {
+    width: 100%; height: 2px;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    border-radius: 1px; position: relative;
+  }
+
+  .bridge-particle {
+    position: absolute; top: 50%;
+    width: 8px; height: 8px; border-radius: 50%;
+    transform: translateY(-50%);
+    animation: flow 2s linear infinite;
+    box-shadow: 0 0 6px currentColor;
+  }
+
+  .bridge-particle:nth-child(1) { background: var(--cyan); color: var(--cyan); animation-delay: 0s; }
+  .bridge-particle:nth-child(2) { background: #a78bfa; color: #a78bfa; animation-delay: 0.7s; }
+  .bridge-particle:nth-child(3) { background: var(--purple); color: var(--purple); animation-delay: 1.4s; }
+
+  .bridge-label-text {
+    position: absolute; top: -1.2rem; left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Space Mono', monospace; font-size: 0.6rem;
+    color: var(--muted); white-space: nowrap; letter-spacing: 0.08em;
+  }
+
+  /* ── TAB PANELS ── */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ── MAIN ── */
+  .main-wrapper {
+    position: relative; z-index: 1;
+    max-width: 1200px; margin: 0 auto;
+    padding: 0 2rem 4rem;
+  }
+
+  /* ── STATS ROW ── */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.25rem 1.5rem;
+    transition: border-color 0.2s, transform 0.2s;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+
+  .stat-card:nth-child(1) { animation-delay: 0.05s; }
+  .stat-card:nth-child(2) { animation-delay: 0.1s; }
+  .stat-card:nth-child(3) { animation-delay: 0.15s; }
+  .stat-card:nth-child(4) { animation-delay: 0.2s; }
+  .stat-card:hover { border-color: rgba(0,229,255,0.3); transform: translateY(-2px); }
+
+  .stat-label {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.1em; margin-bottom: 0.5rem;
+  }
+
+  .stat-value {
+    font-size: 1.5rem; font-weight: 700;
+    font-family: 'Space Mono', monospace;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    animation: countUp 0.5s ease both;
+  }
+
+  .stat-sub { font-size: 0.75rem; color: var(--muted); margin-top: 0.25rem; }
+
+  /* ── WALLET PANEL ── */
+  .wallet-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px; overflow: hidden; margin-bottom: 1.5rem;
+  }
+
+  .wallet-panel-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .wallet-panel-header h3 {
+    font-size: 0.9rem; font-weight: 600;
+    display: flex; align-items: center; gap: 0.5rem;
+  }
+
+  .select-all-btn {
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem; padding: 0.3rem 0.75rem;
+    border-radius: 6px; cursor: pointer; transition: all 0.2s;
+  }
+
+  .select-all-btn:hover { border-color: var(--cyan); color: var(--cyan); }
+
+  /* ── TOKEN TABLE ── */
+  .token-table { width: 100%; border-collapse: collapse; }
+
+  .token-table thead tr { background: rgba(255,255,255,0.02); }
+
+  .token-table th {
+    padding: 0.65rem 1.5rem; text-align: left;
+    font-family: 'Space Mono', monospace; font-size: 0.62rem;
+    color: var(--muted); text-transform: uppercase;
+    letter-spacing: 0.1em; font-weight: 400;
+  }
+
+  .token-table th:last-child, .token-table td:last-child { text-align: right; }
+
+  .token-table td {
+    padding: 0.9rem 1.5rem;
+    border-top: 1px solid rgba(30,45,74,0.5);
+    font-size: 0.88rem; vertical-align: middle;
+  }
+
+  .token-row { transition: background 0.15s; }
+  .token-row:hover { background: rgba(255,255,255,0.025); }
+  .token-row.selected { background: rgba(0,229,255,0.045); }
+
+  .token-name { display: flex; align-items: center; gap: 0.75rem; }
+
+  .token-icon {
+    width: 32px; height: 32px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0; overflow: hidden; padding: 5px;
+    transition: transform 0.2s;
+  }
+  .token-icon svg { width: 100%; height: 100%; display: block; }
+
+  .token-row:hover .token-icon { transform: scale(1.15); }
+
+  .token-icon.eth-color  { background: rgba(0,229,255,0.12); }
+  .token-icon.sol-color  { background: rgba(153,69,255,0.12); }
+  .token-icon.arb-color  { background: rgba(139,156,240,0.12); }
+  .token-icon.uni-color  { background: rgba(255,0,122,0.12); }
+  .token-icon.link-color { background: rgba(55,91,210,0.12); }
+  .token-icon.bnb-color  { background: rgba(243,186,47,0.12); }
+  .token-icon.matic-color{ background: rgba(130,71,229,0.12); }
+  .token-icon.avax-color { background: rgba(232,65,66,0.12); }
+  .token-icon.dot-color  { background: rgba(230,0,122,0.12); }
+  .token-icon.op-color   { background: rgba(255,4,32,0.12); }
+
+  .token-ticker { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:700; color:var(--frost); }
+  .token-chain  { font-size: 0.68rem; color: var(--muted); }
+
+  .price-change.pos { color: var(--green); }
+  .price-change.neg { color: var(--red); }
+
+  /* ── PROTOCOL PILLS ── */
+  .protocol-pills { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+  .protocol-pill {
+    padding: 0.2rem 0.6rem; border-radius: 20px;
+    border: 1px solid var(--border); font-size: 0.72rem; font-weight: 600;
+    cursor: pointer; transition: all 0.2s; color: var(--muted); background: none;
+  }
+
+  .protocol-pill:hover { border-color: var(--cyan); color: var(--frost); }
+  .protocol-pill.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,229,255,0.08); }
+
+  /* ── CHECKBOX ── */
+  .custom-check {
+    appearance: none; -webkit-appearance: none;
+    width: 18px; height: 18px; border: 1.5px solid var(--border);
+    border-radius: 4px; cursor: pointer; transition: all 0.2s;
+    position: relative; flex-shrink: 0;
+  }
+
+  .custom-check:checked { background: var(--cyan); border-color: var(--cyan); }
+  .custom-check:checked::after {
+    content: ''; position: absolute; left: 4px; top: 1px;
+    width: 6px; height: 10px;
+    border-right: 2px solid #0A0E1A; border-bottom: 2px solid #0A0E1A;
+    transform: rotate(45deg);
+  }
+
+  /* ── ACTION FOOTER ── */
+  .action-footer {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.5rem 2rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 1.5rem; flex-wrap: wrap;
+  }
+
+  .action-summary { display: flex; flex-direction: column; gap: 0.25rem; }
+
+  .action-summary-label {
+    font-family: 'Space Mono', monospace; font-size: 0.65rem;
+    color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em;
+  }
+
+  .action-summary-value { font-size: 1.1rem; font-weight: 700; color: var(--frost); }
+
+  .action-btns { display: flex; gap: 0.75rem; align-items: center; }
+
+  .btn-primary {
+    padding: 0.75rem 2rem; border-radius: 10px; border: none;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    color: #0A0E1A;
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    white-space: nowrap; position: relative; overflow: hidden;
+  }
+
+  .btn-primary::after {
+    content: '';
+    position: absolute; top: -50%; left: -75%;
+    width: 50%; height: 200%;
+    background: rgba(255,255,255,0.25);
+    transform: skewX(-20deg);
+    transition: left 0.4s;
+  }
+
+  .btn-primary:hover::after { left: 130%; }
+  .btn-primary:hover { opacity: 0.92; transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,229,255,0.25); }
+  .btn-primary:active { transform: translateY(0); }
+  .btn-primary:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+  .btn-secondary {
+    padding: 0.75rem 1.5rem; border-radius: 10px;
+    border: 1px solid var(--border); background: none; color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.9rem; font-weight: 500;
+    cursor: pointer; transition: all 0.2s; white-space: nowrap;
+  }
+
+  .btn-secondary:hover { border-color: var(--cyan); color: var(--frost); }
+
+  /* ── GAS ROW ── */
+  .gas-row {
+    display: flex; align-items: center; gap: 1.5rem;
+    padding: 0.75rem 1.5rem;
+    background: rgba(255,255,255,0.02);
+    border-top: 1px solid var(--border);
+    font-size: 0.78rem; color: var(--muted); flex-wrap: wrap;
+  }
+
+  .gas-item { display: flex; align-items: center; gap: 0.4rem; }
+  .gas-item strong { color: var(--frost); font-weight: 600; }
+
+  /* ── STAKED CARDS ── */
+  .staked-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1rem; margin-bottom: 2rem;
+  }
+
+  .staked-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 1.25rem 1.5rem;
+    transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
+    animation: fadeSlideUp 0.5s ease both;
+  }
+
+  .staked-card:hover {
+    border-color: rgba(0,229,255,0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 8px 28px rgba(0,229,255,0.08);
+  }
+
+  .staked-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+
+  .staked-card-title { display: flex; align-items: center; gap: 0.6rem; }
+
+  .staked-protocol-tag {
+    font-size: 0.65rem; font-weight: 600;
+    padding: 0.2rem 0.5rem; border-radius: 4px;
+    background: rgba(0,229,255,0.1); color: var(--cyan);
+    border: 1px solid rgba(0,229,255,0.2);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .apy-badge { font-family: 'Space Mono', monospace; font-size: 0.85rem; font-weight: 700; color: var(--green); }
+
+  .staked-amounts {
+    display: flex; justify-content: space-between; gap: 1rem;
+    margin-top: 0.75rem; padding-top: 0.75rem; border-top: 1px solid var(--border);
+  }
+
+  .staked-amt-item { display: flex; flex-direction: column; gap: 0.2rem; }
+
+  .staked-amt-label { font-family: 'Space Mono', monospace; font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; }
+  .staked-amt-val { font-size: 0.95rem; font-weight: 600; color: var(--frost); }
+  .staked-amt-val.earned { color: var(--green); }
+
+  /* ── EARNINGS ── */
+  .earnings-chart-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 1.5rem; margin-bottom: 1.5rem;
+  }
+
+  .earnings-chart-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.5rem; }
+  .earnings-chart-header h3 { font-size: 0.95rem; font-weight: 600; }
+
+  .period-pills { display: flex; gap: 0.35rem; }
+
+  .period-pill {
+    padding: 0.25rem 0.65rem; border-radius: 6px;
+    border: 1px solid var(--border); background: none; color: var(--muted);
+    font-size: 0.72rem; font-family: 'Space Mono', monospace;
+    cursor: pointer; transition: all 0.2s;
+  }
+
+  .period-pill.active { background: var(--panel); color: var(--cyan); border-color: var(--cyan); }
+
+  #earnings-canvas { width: 100%; height: 180px; display: block; }
+
+  /* ── REDEEM ── */
+  .redeem-header-box {
+    background: linear-gradient(135deg, rgba(0,229,255,0.08), rgba(153,69,255,0.08));
+    border: 1px solid var(--border); border-radius: 16px;
+    padding: 2rem; margin-bottom: 1.5rem;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 2rem; flex-wrap: wrap;
+  }
+
+  .redeem-total { display: flex; flex-direction: column; gap: 0.5rem; }
+  .redeem-total-label { font-family: 'Space Mono', monospace; font-size: 0.65rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; }
+
+  .redeem-total-value {
+    font-family: 'Space Mono', monospace; font-size: 2.5rem; font-weight: 700;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent; line-height: 1;
+  }
+
+  .redeem-total-sub { color: var(--muted); font-size: 0.8rem; }
+
+  .btn-redeem-all {
+    padding: 1rem 2.5rem; border-radius: 12px; border: none;
+    background: linear-gradient(135deg, var(--green), #16a34a);
+    color: #fff;
+    font-family: 'Space Grotesk', sans-serif; font-size: 1rem; font-weight: 700;
+    cursor: pointer; transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+    white-space: nowrap; position: relative; overflow: hidden;
+  }
+
+  .btn-redeem-all::after {
+    content: ''; position: absolute; top: -50%; left: -75%;
+    width: 50%; height: 200%;
+    background: rgba(255,255,255,0.2); transform: skewX(-20deg); transition: left 0.4s;
+  }
+
+  .btn-redeem-all:hover::after { left: 130%; }
+  .btn-redeem-all:hover { opacity: 0.9; transform: translateY(-2px); box-shadow: 0 6px 20px rgba(34,197,94,0.3); }
+
+  /* ── PROGRESS BAR ── */
+  .progress-bar-wrap { background: var(--panel); border-radius: 4px; height: 4px; margin-top: 0.75rem; overflow: hidden; }
+  .progress-bar-fill {
+    height: 100%; border-radius: 4px;
+    background: linear-gradient(90deg, var(--cyan), var(--purple));
+    transition: width 0.8s cubic-bezier(0.22,1,0.36,1);
+  }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed; bottom: 2rem; right: 2rem;
+    background: var(--surface); border: 1px solid var(--green);
+    border-radius: 12px; padding: 1rem 1.5rem; z-index: 999;
+    display: flex; align-items: center; gap: 0.75rem;
+    font-size: 0.88rem; font-weight: 500; color: var(--frost);
+    animation: slideUp 0.3s ease; max-width: 380px;
+    transition: opacity 0.5s;
+  }
+
+  .toast.hiding { opacity: 0; }
+
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0); opacity: 1; }
+  }
+
+  /* ── MODAL ── */
+  .modal-overlay {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.72);
+    backdrop-filter: blur(10px);
+    z-index: 200; display: flex; align-items: center; justify-content: center; padding: 1rem;
+    animation: fadeIn 0.2s ease;
+  }
+
+  .modal-overlay.hidden { display: none; }
+
+  .modal {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 20px; padding: 2rem;
+    max-width: 460px; width: 100%;
+    animation: fadeSlideUp 0.25s ease;
+  }
+
+  .modal h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 1.5rem; display: flex; align-items: center; gap: 0.5rem; }
+
+  .wallet-option {
+    display: flex; align-items: center; gap: 1rem;
+    padding: 1rem 1.25rem; border: 1px solid var(--border);
+    border-radius: 12px; cursor: pointer; transition: all 0.2s; margin-bottom: 0.75rem;
+  }
+
+  .wallet-option:hover { border-color: var(--cyan); background: rgba(0,229,255,0.04); transform: translateX(4px); }
+
+  .wallet-option-icon { font-size: 1.8rem; }
+  .wallet-option-info h4 { font-size: 0.9rem; font-weight: 600; }
+  .wallet-option-info p { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
+
+  .modal-close {
+    display: block; width: 100%; padding: 0.7rem; border: none;
+    background: none; color: var(--muted);
+    font-family: 'Space Grotesk', sans-serif; font-size: 0.85rem; cursor: pointer;
+    border-top: 1px solid var(--border); margin-top: 1rem; padding-top: 1.25rem; transition: color 0.2s;
+  }
+
+  .modal-close:hover { color: var(--frost); }
+
+  /* ── CONNECT PROMPT ── */
+  .connect-prompt { text-align: center; padding: 4rem 2rem; color: var(--muted); }
+  .connect-prompt .big-icon { font-size: 3rem; margin-bottom: 1rem; animation: float 3s ease-in-out infinite; display: inline-block; }
+  .connect-prompt h3 { color: var(--frost); font-size: 1.1rem; margin-bottom: 0.5rem; }
+  .connect-prompt p { font-size: 0.88rem; margin-bottom: 1.5rem; }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 900px) {
+    .nav-tab { padding: 0 0.9rem; font-size: 0.78rem; }
+    .logo { margin-right: 1rem; }
+  }
+
+  @media (max-width: 768px) {
+    nav { flex-wrap: wrap; height: auto; padding: 0.5rem 1rem; gap: 0.5rem; }
+    .nav-tabs { order: 3; width: 100%; border-top: 1px solid var(--border); height: 48px; }
+    .nav-tab { padding: 0 0.75rem; font-size: 0.75rem; }
+    .hero, .main-wrapper { padding-left: 1rem; padding-right: 1rem; }
+    .bridge-visual { padding: 1rem; }
+    .chain-label { display: none; }
+    .token-table th:nth-child(3), .token-table td:nth-child(3),
+    .token-table th:nth-child(5), .token-table td:nth-child(5) { display: none; }
+    .action-footer { flex-direction: column; align-items: stretch; }
+    .action-btns { justify-content: flex-end; }
+    .pitch-strip { flex-direction: column; }
+  }
+
+  /* Loading spinner for stake btn */
+  @keyframes rotateSpin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 14px; height: 14px;
+    border: 2px solid rgba(10,14,26,0.4);
+    border-top-color: #0A0E1A;
+    border-radius: 50%;
+    animation: rotateSpin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+
+<!-- WALLET MODAL -->
+<div class="modal-overlay hidden" id="wallet-modal">
+  <div class="modal">
+    <h3>🔗 Connect Wallet</h3>
+    <div class="wallet-option" onclick="connectWallet('metamask')">
+      <div class="wallet-option-icon">🦊</div>
+      <div class="wallet-option-info">
+        <h4>MetaMask</h4>
+        <p>Ethereum, Arbitrum, EVM-compatible chains</p>
+      </div>
+    </div>
+    <div class="wallet-option" onclick="connectWallet('phantom')">
+      <div class="wallet-option-icon">👻</div>
+      <div class="wallet-option-info">
+        <h4>Phantom</h4>
+        <p>Solana, Ethereum, Polygon</p>
+      </div>
+    </div>
+    <button class="modal-close" onclick="closeModal()">Cancel</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">⬡ Easy Staking</div>
+
+  <!-- Tabs sit right next to logo -->
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="switchTab('stake', this)">
+      Stake <span class="tab-badge" id="tab-badge-stake">0</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('staked', this)">
+      Staked <span class="tab-badge">7</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('earnings', this)">
+      Earnings <span class="tab-badge" style="color:var(--green)">+4.8%</span>
+    </button>
+    <button class="nav-tab" onclick="switchTab('redeem', this)">
+      Redeem <span class="tab-badge" style="color:var(--gold)">3 ready</span>
+    </button>
+  </div>
+
+  <div class="nav-right">
+    <div id="chainlink-live" class="chainlink-badge">
+      <div class="chainlink-dot"></div>
+      CHAINLINK LIVE
+    </div>
+    <button class="wallet-btn" id="connect-btn" onclick="openModal()">
+      🔗 Connect Wallet
+    </button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">ETH · Arbitrum · Solana · Cross-Chain</div>
+  <h1>All Your Coins.<br><span>One Click. Staked.</span></h1>
+  <p class="hero-sub">Stop managing ten protocols manually. Easy Staking detects every asset in your wallet and stakes them all in a single on-chain transaction — routed through Arbitrum for minimal fees and maximum speed.</p>
+
+  <!-- PITCH CARDS -->
+  <div class="pitch-strip">
+    <div class="pitch-card">
+      <div class="pitch-step">Step 01</div>
+      <h4>Connect your wallet</h4>
+      <p>MetaMask or Phantom — we instantly scan all your ETH and SOL assets and show live Chainlink prices.</p>
+    </div>
+    <div class="pitch-card">
+      <div class="pitch-step">Step 02</div>
+      <h4>One click to stake all</h4>
+      <p>Select which coins to stake (or hit "Select All"), pick your protocol, and confirm a single signature.</p>
+    </div>
+    <div class="pitch-card">
+      <div class="pitch-step">Step 03</div>
+      <h4>Watch yields accumulate</h4>
+      <p>Track staked balances and earnings in real time. Redeem everything at once whenever you're ready.</p>
+    </div>
+  </div>
+
+  <!-- BRIDGE VISUALIZER -->
+  <div class="bridge-visual">
+    <div class="chain-node">
+      <div class="chain-icon eth">Ξ</div>
+      <div class="chain-label">Ethereum</div>
+    </div>
+    <div class="bridge-arrow">
+      <div class="bridge-line">
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+      </div>
+      <div class="bridge-label-text">VIA ARBITRUM BRIDGE</div>
+    </div>
+    <div class="chain-node">
+      <div class="chain-icon arb">△</div>
+      <div class="chain-label">Arbitrum</div>
+    </div>
+    <div class="bridge-arrow">
+      <div class="bridge-line">
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+      </div>
+      <div class="bridge-label-text">CROSS-CHAIN SWAP</div>
+    </div>
+    <div class="chain-node">
+      <div class="chain-icon sol">◎</div>
+      <div class="chain-label">Solana</div>
+    </div>
+    <div class="bridge-arrow">
+      <div class="bridge-line">
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+        <div class="bridge-particle"></div>
+      </div>
+      <div class="bridge-label-text">STAKING PROTOCOL</div>
+    </div>
+    <div class="chain-node">
+      <div class="chain-icon eth" style="border-color:var(--green);">📈</div>
+      <div class="chain-label">Yield</div>
+    </div>
+  </div>
+</section>
+
+<!-- MAIN -->
+<main class="main-wrapper">
+
+  <!-- STATS ROW -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-label">Total Portfolio Value</div>
+      <div class="stat-value" id="total-portfolio">$0.00</div>
+      <div class="stat-sub">10 assets detected</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Staked</div>
+      <div class="stat-value" id="total-staked">$0.00</div>
+      <div class="stat-sub">Avg APY 6.4%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total Earned</div>
+      <div class="stat-value" id="total-earned">$0.00</div>
+      <div class="stat-sub">+$0.00 today</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Gas Saved</div>
+      <div class="stat-value">94%</div>
+      <div class="stat-sub">vs. 10 separate txns</div>
+    </div>
+  </div>
+
+  <!-- TAB PANELS -->
+  <!-- STAKE -->
+  <div class="tab-panel active" id="tab-stake">
+    <div class="wallet-panel">
+      <div class="wallet-panel-header">
+        <h3>
+          Wallet Assets
+          <span id="wallet-address-display" style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);"></span>
+        </h3>
+        <div style="display:flex;gap:0.5rem;align-items:center;">
+          <button class="select-all-btn" onclick="selectAll()">Select All</button>
+          <button class="select-all-btn" onclick="deselectAll()">None</button>
+        </div>
+      </div>
+
+      <div id="stake-connect-prompt" class="connect-prompt">
+        <div class="big-icon">🔌</div>
+        <h3>Wallet not connected</h3>
+        <p>Connect MetaMask or Phantom to view your assets.</p>
+        <button class="btn-primary" onclick="openModal()">Connect Wallet</button>
+      </div>
+
+      <div id="token-table-wrap" style="display:none;overflow-x:auto;">
+        <table class="token-table">
+          <thead>
+            <tr>
+              <th style="width:40px;"></th>
+              <th>Asset</th>
+              <th>Price (Chainlink)</th>
+              <th>Balance</th>
+              <th>Value USD</th>
+              <th>Protocol</th>
+              <th>APY</th>
+            </tr>
+          </thead>
+          <tbody id="token-tbody"></tbody>
+        </table>
+        <div class="gas-row">
+          <span class="gas-item">⛽ Estimated gas: <strong id="gas-estimate">~$0.42</strong></span>
+          <span class="gas-item">🔗 Bridge: <strong>Arbitrum</strong></span>
+          <span class="gas-item">⏱ ~45 seconds</span>
+          <span class="gas-item" style="margin-left:auto;">
+            <span class="chainlink-badge"><div class="chainlink-dot"></div> Prices live via Chainlink</span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="action-footer">
+      <div class="action-summary">
+        <div class="action-summary-label">Selected to stake</div>
+        <div class="action-summary-value" id="selected-value">$0.00 · 0 coins</div>
+      </div>
+      <div style="flex:1;">
+        <div style="font-size:0.72rem;color:var(--muted);margin-bottom:0.4rem;font-family:'Space Mono',monospace;">PROTOCOLS</div>
+        <div class="protocol-pills">
+          <button class="protocol-pill active" onclick="toggleProtocol(this, 'uniswap')">🦄 Uniswap v3</button>
+          <button class="protocol-pill active" onclick="toggleProtocol(this, 'pancake')">🥞 PancakeSwap</button>
+          <button class="protocol-pill" onclick="toggleProtocol(this, 'lido')">🔷 Lido</button>
+          <button class="protocol-pill" onclick="toggleProtocol(this, 'aave')">👻 AAVE</button>
+        </div>
+      </div>
+      <div class="action-btns">
+        <button class="btn-secondary" onclick="estimateGas()">Estimate Gas</button>
+        <button class="btn-primary" id="stake-btn" onclick="stakeAll()" disabled>
+          ⚡ Stake All
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STAKED -->
+  <div class="tab-panel" id="tab-staked">
+    <div class="staked-cards" id="staked-cards-grid"></div>
+    <div class="connect-prompt" id="staked-empty" style="display:none;">
+      <div class="big-icon">🔒</div>
+      <h3>Nothing staked yet</h3>
+      <p>Go to the Stake tab to stake your first assets.</p>
+    </div>
+  </div>
+
+  <!-- EARNINGS -->
+  <div class="tab-panel" id="tab-earnings">
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-label">Earned today</div>
+        <div class="stat-value" style="font-size:1.3rem;" id="earn-today">$0.00</div>
+        <div class="stat-sub" id="earn-today-sub">—</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This week</div>
+        <div class="stat-value" style="font-size:1.3rem;" id="earn-week">$0.00</div>
+        <div class="stat-sub">7-day avg</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">This month</div>
+        <div class="stat-value" style="font-size:1.3rem;" id="earn-month">$0.00</div>
+        <div class="stat-sub">Jun 2025</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">All-time earned</div>
+        <div class="stat-value" style="font-size:1.3rem;" id="earn-total">$0.00</div>
+        <div class="stat-sub">Since inception</div>
+      </div>
+    </div>
+
+    <div class="earnings-chart-box">
+      <div class="earnings-chart-header">
+        <h3>Earnings History</h3>
+        <div class="period-pills">
+          <button class="period-pill active" onclick="setPeriod(this,'7d')">7D</button>
+          <button class="period-pill" onclick="setPeriod(this,'30d')">30D</button>
+          <button class="period-pill" onclick="setPeriod(this,'90d')">90D</button>
+          <button class="period-pill" onclick="setPeriod(this,'1y')">1Y</button>
+        </div>
+      </div>
+      <canvas id="earnings-canvas"></canvas>
+    </div>
+
+    <div class="wallet-panel">
+      <div class="wallet-panel-header"><h3>Earnings by Asset</h3></div>
+      <div style="overflow-x:auto;">
+        <table class="token-table">
+          <thead>
+            <tr>
+              <th>Asset</th>
+              <th>Staked</th>
+              <th>APY</th>
+              <th>All-time earned</th>
+              <th>Earned today</th>
+              <th>Protocol</th>
+            </tr>
+          </thead>
+          <tbody id="earnings-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- REDEEM -->
+  <div class="tab-panel" id="tab-redeem">
+    <div class="redeem-header-box">
+      <div class="redeem-total">
+        <div class="redeem-total-label">Total redeemable</div>
+        <div class="redeem-total-value" id="redeem-total-val">$0.00</div>
+        <div class="redeem-total-sub" id="redeem-total-sub">incl. staked principal + earnings</div>
+      </div>
+      <div>
+        <button class="btn-redeem-all" onclick="redeemAll()">
+          🔓 Redeem Everything
+        </button>
+        <div style="font-size:0.72rem;color:var(--muted);margin-top:0.5rem;text-align:center;">
+          Unbonding: ~3–5 days depending on protocol
+        </div>
+      </div>
+    </div>
+
+    <div class="wallet-panel">
+      <div class="wallet-panel-header">
+        <h3>Redeemable Positions</h3>
+        <button class="select-all-btn" onclick="selectAllRedeem()">Select All</button>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="token-table">
+          <thead>
+            <tr>
+              <th style="width:40px;"></th>
+              <th>Asset</th>
+              <th>Staked</th>
+              <th>Earnings</th>
+              <th>Total</th>
+              <th>Status</th>
+              <th>Protocol</th>
+            </tr>
+          </thead>
+          <tbody id="redeem-tbody"></tbody>
+        </table>
+      </div>
+      <div class="gas-row">
+        <span class="gas-item">⛽ Batch redeem gas: <strong>~$0.18</strong></span>
+        <span class="gas-item">💡 Saves 87% vs. redeeming individually</span>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<div id="toast-container"></div>
+
+<script>
+// ── STATE ──
+let walletConnected = false;
+let walletType = null;
+let selectedTokens = new Set();
+let activeProtocols = new Set(['uniswap','pancake']);
+
+const TOKEN_LOGOS = {
+  eth:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4l-8.5 14 8.5 4.7 8.5-4.7L16 4z" fill="#8A92B2"/><path d="M7.5 18l8.5 4.7V4L7.5 18z" fill="#62688F"/><path d="M16 22.7l8.5-4.7-8.5-10.7v15.4z" fill="#454A75"/><path d="M7.5 19.5l8.5 8.5V24L7.5 19.5z" fill="#8A92B2"/><path d="M16 24v4l8.5-8.5L16 24z" fill="#62688F"/><path d="M16 24l-8.5-4.5 8.5 8.5V24z" fill="#454A75"/></svg>`,
+  sol:   `<svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><defs><linearGradient id="sg" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#9945FF"/><stop offset="100%" stop-color="#14F195"/></linearGradient></defs><path d="M7 21.5h14.5l3.5-3.5H10.5L7 21.5zm0-7.5h14.5l3.5-3.5H10.5L7 14zm3.5-7.5H25l-3.5 3.5H7l3.5-3.5z" fill="url(#sg)"/></svg>`,
+  arb:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4L5 10v12l11 6 11-6V10L16 4z" fill="#213147"/><path d="M11 20l3-8 2 5-1.5 3H11zm6.5 0l2-5 2 5h-4z" fill="#96BEDC"/><path d="M13 12l3 8h-2l-3-8h2zm4 0h2l-3 8h-2l3-8z" fill="#fff"/></svg>`,
+  uni:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#FF007A"/><path d="M13 11c0-.6.4-1 1-1s1 .4 1 1-.4 1.5-1 2c-.6-.5-1-1.4-1-2zm3.5 1c.3-.5.7-.8 1.2-.8.8 0 1.3.7 1.3 1.5 0 .7-.3 1.3-.8 1.7l1.8 5.6H18l-1.2-4-1.2 4H13l2.5-7.5c-.3-.4-.4-.8-.4-1.2 0-.1 0-.2.4-.6z" fill="white"/><path d="M10.5 20.5c1 1.5 3 2.5 5.5 2.5s4.5-1 5.5-2.5" stroke="white" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>`,
+  link:  `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4l-3 1.7-7 4V22.3l3 1.7 7 4 7-4 3-1.7V9.7l-3-1.7-7-4z" fill="#375BD2"/><path d="M16 10l-4 2.3v4.4L16 19l4-2.3v-4.4L16 10z" fill="white"/></svg>`,
+  bnb:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#F3BA2F"/><path d="M16 8l2.4 2.4-2.4 2.4-2.4-2.4L16 8zm4.8 4.8l2.4 2.4-2.4 2.4-2.4-2.4 2.4-2.4zm-9.6 0l2.4 2.4-2.4 2.4-2.4-2.4 2.4-2.4zm4.8 4.8l2.4 2.4-2.4 2.4-2.4-2.4 2.4-2.4zm0 4.8l2.4 2.4-2.4 2.4-2.4-2.4 2.4-2.4z" fill="white"/></svg>`,
+  matic: `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#8247E5"/><path d="M20.5 13.5c-.4-.2-.9-.2-1.3 0L16.5 15l-2 1.1-2.7 1.5c-.4.2-.9.2-1.3 0l-2.2-1.3c-.4-.2-.6-.6-.6-1v-2.5c0-.4.2-.8.6-1l2.2-1.2c.4-.2.9-.2 1.3 0l2.2 1.2c.4.2.6.6.6 1v1.1l2-1.1v-1.2c0-.4-.2-.8-.6-1L14 9.2c-.4-.2-.9-.2-1.3 0L9 11.6c-.4.2-.6.6-.6 1v4.8c0 .4.2.8.6 1l3.7 2.1c.4.2.9.2 1.3 0l2.7-1.5 2-1.1 2.7-1.5c.4-.2.9-.2 1.3 0l2.2 1.3c.4.2.6.6.6 1v2.5c0 .4-.2.8-.6 1l-2.2 1.2c-.4.2-.9.2-1.3 0L19.1 22c-.4-.2-.6-.6-.6-1v-1.1l-2 1.1v1.2c0 .4.2.8.6 1l3.7 2.1c.4.2.9.2 1.3 0l3.7-2.1c.4-.2.6-.6.6-1v-4.8c0-.4-.2-.8-.6-1l-3.8-2z" fill="white"/></svg>`,
+  avax:  `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#E84142"/><path d="M19.5 22h4.2l-5.8-10.5c-.5-.9-1.7-.9-2.2 0L8.3 22h4.2l3.5-6.4 3.5 6.4zm-7.8-3.5l1.2-2.2 1.2 2.2h-2.4z" fill="white"/></svg>`,
+  dot:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#E6007A"/><circle cx="16" cy="9" r="2.5" fill="white"/><circle cx="16" cy="23" r="2.5" fill="white"/><circle cx="9.5" cy="12.5" r="2.5" fill="white"/><circle cx="22.5" cy="12.5" r="2.5" fill="white"/><circle cx="9.5" cy="19.5" r="2.5" fill="white"/><circle cx="22.5" cy="19.5" r="2.5" fill="white"/></svg>`,
+  op:    `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><circle cx="16" cy="16" r="12" fill="#FF0420"/><path d="M12.3 19.2c-.8 0-1.4-.2-1.8-.6-.4-.4-.7-1-.7-1.8 0-.2 0-.4.1-.7l1.1-5.5h1.7l-1.1 5.4c0 .1-.1.3-.1.4 0 .3.1.6.3.8.2.2.5.3.9.3.6 0 1-.2 1.4-.6.3-.4.6-.9.7-1.6l1-4.7h1.7l-1.4 7.1h-1.6l.2-1c-.6.8-1.3 1.5-2.4 1.5zm7 0c-.7 0-1.3-.2-1.7-.5-.4-.3-.7-.8-.8-1.3l1.6-.3c.1.3.2.6.4.7.2.2.5.2.8.2.3 0 .6-.1.8-.2.2-.1.3-.3.3-.5 0-.1 0-.2-.1-.3-.1-.1-.3-.2-.6-.3l-.8-.2c-.6-.2-1-.4-1.3-.7-.3-.3-.4-.6-.4-1.1 0-.4.1-.8.3-1.1.2-.3.5-.6.9-.8.4-.2.8-.3 1.3-.3.6 0 1.2.2 1.5.5.4.3.6.7.7 1.2l-1.5.3c0-.3-.1-.5-.3-.6-.2-.2-.4-.2-.7-.2-.3 0-.5.1-.7.2-.2.1-.2.3-.2.5 0 .2.1.3.2.4.1.1.4.2.7.3l.8.2c.6.2 1 .4 1.3.7.3.3.4.7.4 1.1 0 .7-.3 1.2-.8 1.6-.5.3-1.1.5-1.8.5z" fill="white"/></svg>`,
+};
+
+const TOKENS = [
+  { id:'eth',  symbol:'ETH',  name:'Ethereum',  color:'eth-color',   chain:'Ethereum',  price:3247.82, balance:1.4,  apy:4.2,  protocol:'Lido',       staked:0.8,  earned:0.024 },
+  { id:'sol',  symbol:'SOL',  name:'Solana',    color:'sol-color',   chain:'Solana',    price:142.50,  balance:28.5, apy:6.8,  protocol:'Marinade',   staked:20,   earned:0.82  },
+  { id:'arb',  symbol:'ARB',  name:'Arbitrum',  color:'arb-color',   chain:'Arbitrum',  price:1.24,    balance:1250, apy:5.5,  protocol:'Uniswap',    staked:800,  earned:18.5  },
+  { id:'uni',  symbol:'UNI',  name:'Uniswap',   color:'uni-color',   chain:'Ethereum',  price:8.92,    balance:45,   apy:8.1,  protocol:'Uniswap',    staked:30,   earned:1.2   },
+  { id:'link', symbol:'LINK', name:'Chainlink', color:'link-color',  chain:'Ethereum',  price:14.67,   balance:120,  apy:5.2,  protocol:'AAVE',       staked:80,   earned:2.1   },
+  { id:'bnb',  symbol:'BNB',  name:'BNB',       color:'bnb-color',   chain:'BNB Chain', price:598.40,  balance:2.2,  apy:7.4,  protocol:'PancakeSwap',staked:1.5,  earned:0.055 },
+  { id:'matic',symbol:'POL',  name:'Polygon',   color:'matic-color', chain:'Polygon',   price:0.89,    balance:3200, apy:9.2,  protocol:'AAVE',       staked:2000, earned:82    },
+  { id:'avax', symbol:'AVAX', name:'Avalanche', color:'avax-color',  chain:'Avalanche', price:38.20,   balance:15,   apy:8.5,  protocol:'Uniswap',    staked:10,   earned:0.42  },
+  { id:'dot',  symbol:'DOT',  name:'Polkadot',  color:'dot-color',   chain:'Polkadot',  price:8.14,    balance:90,   apy:10.1, protocol:'PancakeSwap',staked:60,   earned:3.1   },
+  { id:'op',   symbol:'OP',   name:'Optimism',  color:'op-color',    chain:'Optimism',  price:2.31,    balance:480,  apy:6.3,  protocol:'Uniswap',    staked:300,  earned:9.4   },
+];
+
+// ── CANVAS PARTICLES ──
+const canvas = document.getElementById('bg-canvas');
+const ctx = canvas.getContext('2d');
+let particles = [];
+
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+
+function initParticles() {
+  particles = [];
+  for (let i = 0; i < 80; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      r: Math.random() * 1.8 + 0.3,
+      vx: (Math.random() - 0.5) * 0.35,
+      vy: (Math.random() - 0.5) * 0.35,
+      color: Math.random() > 0.5 ? '#00E5FF' : '#9945FF',
+      alpha: Math.random() * 0.45 + 0.05,
+      pulse: Math.random() * Math.PI * 2,
+    });
+  }
+}
+
+function animateParticles() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  const t = Date.now() * 0.001;
+  particles.forEach(p => {
+    p.x += p.vx; p.y += p.vy;
+    if (p.x < 0 || p.x > canvas.width)  p.vx *= -1;
+    if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+    const alpha = p.alpha * (0.6 + 0.4 * Math.sin(t * 1.5 + p.pulse));
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fillStyle = p.color;
+    ctx.globalAlpha = alpha;
+    ctx.fill();
+    ctx.globalAlpha = 1;
+  });
+  // draw faint connection lines between close particles
+  for (let i = 0; i < particles.length; i++) {
+    for (let j = i + 1; j < particles.length; j++) {
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (dist < 90) {
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x, particles[i].y);
+        ctx.lineTo(particles[j].x, particles[j].y);
+        ctx.strokeStyle = '#00E5FF';
+        ctx.globalAlpha = (1 - dist / 90) * 0.06;
+        ctx.lineWidth = 0.5;
+        ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+  requestAnimationFrame(animateParticles);
+}
+
+resizeCanvas(); initParticles(); animateParticles();
+window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
+
+// ── WALLET ──
+function openModal()  { document.getElementById('wallet-modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('wallet-modal').classList.add('hidden'); }
+
+function connectWallet(type) {
+  walletType = type;
+  walletConnected = true;
+  closeModal();
+  const btn  = document.getElementById('connect-btn');
+  const addr = type === 'metamask' ? '0x4f3a...8c2d' : 'Dh7K...mXpQ';
+  btn.innerHTML = `<div class="dot"></div>${type === 'metamask' ? '🦊' : '👻'} ${addr}`;
+  btn.classList.add('connected');
+  document.getElementById('wallet-address-display').textContent = `(${addr})`;
+  document.getElementById('stake-connect-prompt').style.display = 'none';
+  document.getElementById('token-table-wrap').style.display = 'block';
+  renderTokenTable();
+  renderStakedCards();
+  renderEarnings();
+  renderRedeem();
+  updateStats();
+  document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+  showToast(`✅ ${type === 'metamask' ? 'MetaMask' : 'Phantom'} connected · ${TOKENS.length} assets detected`);
+  setTimeout(simulatePriceUpdates, 3000);
+}
+
+// ── PRICE SIMULATION ── only patches cells, never rebuilds the table
+function simulatePriceUpdates() {
+  setInterval(() => {
+    TOKENS.forEach(t => {
+      t.price = Math.max(0.01, t.price + (Math.random() - 0.498) * t.price * 0.002);
+    });
+    if (!walletConnected) return;
+    TOKENS.forEach(t => {
+      const row = document.querySelector(`tr[data-id="${t.id}"]`);
+      if (!row) return;
+      const cells = row.querySelectorAll('td');
+      const chg = ((Math.random() - 0.48) * 3).toFixed(2);
+      const chgClass = parseFloat(chg) >= 0 ? 'pos' : 'neg';
+      const chgSign  = parseFloat(chg) >= 0 ? '+' : '';
+      cells[2].innerHTML = `<div style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(t.price)}</div><div class="price-change ${chgClass}" style="font-size:0.7rem;">${chgSign}${chg}%</div>`;
+      cells[4].innerHTML = `<span style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(t.price * t.balance)}</span>`;
+    });
+    updateStats();
+  }, 4000);
+}
+
+// ── STATS ──
+function fmt(n) { return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+
+function updateStats() {
+  const totalPortfolio = TOKENS.reduce((s,t) => s + t.price * t.balance, 0);
+  const totalStaked    = TOKENS.reduce((s,t) => s + t.price * t.staked,  0);
+  const totalEarned    = TOKENS.reduce((s,t) => s + t.price * t.earned,  0);
+  animateValue('total-portfolio', totalPortfolio);
+  animateValue('total-staked',    totalStaked);
+  animateValue('total-earned',    totalEarned);
+}
+
+function animateValue(id, target) {
+  const el = document.getElementById(id);
+  const start = parseFloat(el.textContent.replace(/[$,]/g,'')) || 0;
+  const steps = 20; let step = 0;
+  const interval = setInterval(() => {
+    step++;
+    const v = start + (target - start) * (step / steps);
+    el.textContent = '$' + fmt(v);
+    if (step >= steps) clearInterval(interval);
+  }, 20);
+}
+
+// ── TOKEN TABLE ──
+let tokenTableRendered = false;
+function renderTokenTable() {
+  const tbody = document.getElementById('token-tbody');
+  const firstTime = !tokenTableRendered;
+  tokenTableRendered = true;
+  tbody.innerHTML = TOKENS.map((t,idx) => {
+    const val = t.price * t.balance;
+    const chg = ((Math.random() - 0.48) * 3).toFixed(2);
+    const chgClass = parseFloat(chg) >= 0 ? 'pos' : 'neg';
+    const chgSign  = parseFloat(chg) >= 0 ? '+' : '';
+    const sel = selectedTokens.has(t.id);
+    const animStyle = firstTime ? ` style="animation:fadeSlideUp 0.3s ${idx*0.04}s ease both;"` : '';
+    return `<tr class="token-row ${sel ? 'selected' : ''}" data-id="${t.id}"${animStyle} onclick="toggleToken('${t.id}',this)">
+      <td><input type="checkbox" class="custom-check" ${sel ? 'checked' : ''} onchange="toggleToken('${t.id}',this.closest('tr'))" onclick="event.stopPropagation()"></td>
+      <td>
+        <div class="token-name">
+          <div class="token-icon ${t.color}">${TOKEN_LOGOS[t.id]}</div>
+          <div><div class="token-ticker">${t.symbol}</div><div class="token-chain">${t.chain}</div></div>
+        </div>
+      </td>
+      <td>
+        <div style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(t.price)}</div>
+        <div class="price-change ${chgClass}" style="font-size:0.7rem;">${chgSign}${chg}%</div>
+      </td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.82rem;">${t.balance.toLocaleString()} ${t.symbol}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(val)}</td>
+      <td><span class="protocol-pill active" style="font-size:0.65rem;padding:0.15rem 0.45rem;">${t.protocol}</span></td>
+      <td style="font-family:'Space Mono',monospace;color:var(--green);font-size:0.85rem;">${t.apy}%</td>
+    </tr>`;
+  }).join('');
+  updateSelectedSummary();
+}
+
+function toggleToken(id, row) {
+  if (selectedTokens.has(id)) selectedTokens.delete(id);
+  else selectedTokens.add(id);
+  row.classList.toggle('selected', selectedTokens.has(id));
+  row.querySelector('.custom-check').checked = selectedTokens.has(id);
+  updateSelectedSummary();
+}
+
+function selectAll()   { TOKENS.forEach(t => selectedTokens.add(t.id));  renderTokenTable(); }
+function deselectAll() { selectedTokens.clear(); renderTokenTable(); }
+
+function updateSelectedSummary() {
+  const sel = TOKENS.filter(t => selectedTokens.has(t.id));
+  const v   = sel.reduce((s,t) => s + t.price * t.balance, 0);
+  document.getElementById('selected-value').textContent = `$${fmt(v)} · ${sel.length} coins`;
+  document.getElementById('stake-btn').disabled = sel.length === 0;
+  document.getElementById('gas-estimate').textContent = `~$${(0.02 + sel.length * 0.038).toFixed(2)}`;
+}
+
+// ── STAKED CARDS ──
+function renderStakedCards() {
+  const grid = document.getElementById('staked-cards-grid');
+  grid.innerHTML = TOKENS.filter(t => t.staked > 0).map((t,i) => {
+    const stakedVal = t.price * t.staked;
+    const earnedVal = t.price * t.earned;
+    const pct = Math.min(100, (t.staked / t.balance) * 100).toFixed(0);
+    return `<div class="staked-card" style="animation-delay:${i*0.06}s;">
+      <div class="staked-card-header">
+        <div class="staked-card-title">
+          <div class="token-icon ${t.color}" style="width:28px;height:28px;">${TOKEN_LOGOS[t.id]}</div>
+          <span style="font-weight:700;font-size:0.9rem;">${t.symbol}</span>
+          <span class="staked-protocol-tag">${t.protocol}</span>
+        </div>
+        <span class="apy-badge">${t.apy}% APY</span>
+      </div>
+      <div style="font-size:0.72rem;color:var(--muted);">${t.chain}</div>
+      <div class="progress-bar-wrap"><div class="progress-bar-fill" style="width:${pct}%"></div></div>
+      <div style="font-size:0.65rem;color:var(--muted);margin-top:0.3rem;font-family:'Space Mono',monospace;">${pct}% of balance staked</div>
+      <div class="staked-amounts">
+        <div class="staked-amt-item">
+          <div class="staked-amt-label">Staked</div>
+          <div class="staked-amt-val">${t.staked} ${t.symbol}</div>
+          <div style="font-size:0.72rem;color:var(--muted);">$${fmt(stakedVal)}</div>
+        </div>
+        <div class="staked-amt-item">
+          <div class="staked-amt-label">Earned</div>
+          <div class="staked-amt-val earned">+${t.earned} ${t.symbol}</div>
+          <div style="font-size:0.72rem;color:var(--green);">+$${fmt(earnedVal)}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── EARNINGS ──
+function renderEarnings() {
+  const totalEarned = TOKENS.reduce((s,t) => s + t.price * t.earned, 0);
+  document.getElementById('earn-today').textContent  = '$' + fmt(totalEarned * 0.08);
+  document.getElementById('earn-today-sub').textContent = '+' + (Math.random()*0.3+0.1).toFixed(2) + '% today';
+  document.getElementById('earn-week').textContent   = '$' + fmt(totalEarned * 0.5);
+  document.getElementById('earn-month').textContent  = '$' + fmt(totalEarned * 1.8);
+  document.getElementById('earn-total').textContent  = '$' + fmt(totalEarned);
+
+  document.getElementById('earnings-tbody').innerHTML = TOKENS.filter(t => t.staked > 0).map(t => {
+    const sV = t.price * t.staked, eV = t.price * t.earned, dV = eV * 0.08;
+    return `<tr class="token-row">
+      <td><div class="token-name"><div class="token-icon ${t.color}">${TOKEN_LOGOS[t.id]}</div><div><div class="token-ticker">${t.symbol}</div><div class="token-chain">${t.chain}</div></div></div></td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(sV)}</td>
+      <td style="font-family:'Space Mono',monospace;color:var(--green);">${t.apy}%</td>
+      <td style="font-family:'Space Mono',monospace;color:var(--green);">+$${fmt(eV)}</td>
+      <td style="font-family:'Space Mono',monospace;color:var(--green);font-size:0.78rem;">+$${fmt(dV)}</td>
+      <td><span class="staked-protocol-tag">${t.protocol}</span></td>
+    </tr>`;
+  }).join('');
+
+  drawEarningsChart();
+}
+
+function drawEarningsChart() {
+  const c = document.getElementById('earnings-canvas');
+  const cx = c.getContext('2d');
+  c.width = c.offsetWidth * window.devicePixelRatio;
+  c.height = c.offsetHeight * window.devicePixelRatio;
+  cx.scale(window.devicePixelRatio, window.devicePixelRatio);
+  const W = c.offsetWidth, H = c.offsetHeight;
+  const days = 7;
+  const data = Array.from({length:days}, (_,i) => 1.2 + i*0.18 + (Math.random()-0.3)*0.15);
+  const pad  = {top:10,right:10,bottom:30,left:40};
+  const chartW = W - pad.left - pad.right, chartH = H - pad.top - pad.bottom;
+  const minV = Math.min(...data)*0.95, maxV = Math.max(...data)*1.05;
+
+  cx.clearRect(0,0,W,H);
+
+  cx.strokeStyle='rgba(30,45,74,0.7)'; cx.lineWidth=1;
+  for(let i=0;i<=4;i++){
+    const y=pad.top+(chartH*i/4);
+    cx.beginPath(); cx.moveTo(pad.left,y); cx.lineTo(W-pad.right,y); cx.stroke();
+    cx.fillStyle='#8B9BC8'; cx.font='10px Space Mono'; cx.textAlign='right';
+    cx.fillText('$'+(maxV-(maxV-minV)*i/4).toFixed(1),pad.left-4,y+4);
+  }
+
+  const pts = data.map((v,i) => ({
+    x: pad.left + i*chartW/(days-1),
+    y: pad.top + (1-(v-minV)/(maxV-minV))*chartH
+  }));
+
+  const grad = cx.createLinearGradient(0,pad.top,0,pad.top+chartH);
+  grad.addColorStop(0,'rgba(0,229,255,0.3)'); grad.addColorStop(1,'rgba(153,69,255,0.0)');
+  cx.beginPath(); cx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++){const cpx=(pts[i-1].x+pts[i].x)/2;cx.bezierCurveTo(cpx,pts[i-1].y,cpx,pts[i].y,pts[i].x,pts[i].y);}
+  cx.lineTo(pts[pts.length-1].x,pad.top+chartH); cx.lineTo(pts[0].x,pad.top+chartH); cx.closePath();
+  cx.fillStyle=grad; cx.fill();
+
+  cx.beginPath(); cx.moveTo(pts[0].x,pts[0].y);
+  for(let i=1;i<pts.length;i++){const cpx=(pts[i-1].x+pts[i].x)/2;cx.bezierCurveTo(cpx,pts[i-1].y,cpx,pts[i].y,pts[i].x,pts[i].y);}
+  const lg=cx.createLinearGradient(pts[0].x,0,pts[pts.length-1].x,0);
+  lg.addColorStop(0,'#00E5FF'); lg.addColorStop(1,'#9945FF');
+  cx.strokeStyle=lg; cx.lineWidth=2.5; cx.stroke();
+
+  const labels=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  pts.forEach((p,i)=>{
+    cx.beginPath(); cx.arc(p.x,p.y,5,0,Math.PI*2); cx.fillStyle='#0A0E1A'; cx.fill();
+    cx.beginPath(); cx.arc(p.x,p.y,3,0,Math.PI*2); cx.fillStyle='#00E5FF'; cx.fill();
+    cx.fillStyle='#8B9BC8'; cx.font='10px Space Mono'; cx.textAlign='center';
+    cx.fillText(labels[i],p.x,H-pad.bottom+15);
+  });
+}
+
+function setPeriod(btn,period){
+  document.querySelectorAll('.period-pill').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  drawEarningsChart();
+}
+
+// ── REDEEM ──
+function renderRedeem() {
+  const redeemable = TOKENS.filter(t=>t.staked>0);
+  const totalVal   = redeemable.reduce((s,t)=>s+t.price*(t.staked+t.earned),0);
+  document.getElementById('redeem-total-val').textContent = '$'+fmt(totalVal);
+  document.getElementById('redeem-total-sub').textContent = `${redeemable.length} positions · incl. earnings`;
+
+  const statuses = ['Ready','Ready','Unbonding (2d)','Staked','Staked','Staked','Staked'];
+  document.getElementById('redeem-tbody').innerHTML = redeemable.map((t,i)=>{
+    const sV=t.price*t.staked, eV=t.price*t.earned, tot=sV+eV;
+    const status=statuses[i]||'Staked';
+    const isReady=status==='Ready';
+    const statusColor=isReady?'var(--green)':status.includes('Unbonding')?'var(--gold)':'var(--muted)';
+    return `<tr class="token-row">
+      <td><input type="checkbox" class="custom-check" ${isReady?'checked':''}></td>
+      <td><div class="token-name"><div class="token-icon ${t.color}">${TOKEN_LOGOS[t.id]}</div><div><div class="token-ticker">${t.symbol}</div><div class="token-chain">${t.chain}</div></div></div></td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(sV)}</td>
+      <td style="font-family:'Space Mono',monospace;color:var(--green);font-size:0.82rem;">+$${fmt(eV)}</td>
+      <td style="font-family:'Space Mono',monospace;font-weight:700;font-size:0.85rem;">$${fmt(tot)}</td>
+      <td style="font-family:'Space Mono',monospace;font-size:0.75rem;color:${statusColor};">● ${status}</td>
+      <td><span class="staked-protocol-tag">${t.protocol}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function selectAllRedeem(){document.querySelectorAll('#redeem-tbody .custom-check').forEach(cb=>cb.checked=true);}
+
+// ── ACTIONS ──
+function toggleProtocol(btn,id){
+  btn.classList.toggle('active');
+  if(activeProtocols.has(id)) activeProtocols.delete(id); else activeProtocols.add(id);
+}
+
+function estimateGas(){
+  const c=selectedTokens.size;
+  showToast(`⛽ Gas estimate: ~$${(0.02+c*0.038).toFixed(2)} for ${c} tokens via Arbitrum Bridge`);
+}
+
+function stakeAll(){
+  if(selectedTokens.size===0) return;
+  const btn=document.getElementById('stake-btn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="spinner"></span> Awaiting signature…';
+  setTimeout(()=>{
+    btn.innerHTML='<span class="spinner"></span> Bridging…';
+    setTimeout(()=>{
+      btn.innerHTML='<span class="spinner"></span> Staking…';
+      setTimeout(()=>{
+        btn.disabled=false;
+        btn.textContent='⚡ Stake All';
+        showToast(`✅ ${selectedTokens.size} assets successfully staked via ${[...activeProtocols].join(', ')}`);
+        TOKENS.forEach(t=>{if(selectedTokens.has(t.id)){t.staked=Math.min(t.staked+t.balance*0.5,t.balance);}});
+        renderStakedCards(); renderEarnings(); renderRedeem(); updateStats();
+      },1500);
+    },1200);
+  },1000);
+}
+
+function redeemAll(){
+  showToast('🔓 Redeeming all ready positions — unbonding initiated');
+}
+
+// ── TABS ──
+function switchTab(id,btn){
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='earnings') setTimeout(drawEarningsChart,50);
+}
+
+// ── TOAST ──
+function showToast(msg){
+  const t=document.createElement('div');
+  t.className='toast'; t.innerHTML=`<span>${msg}</span>`;
+  document.getElementById('toast-container').appendChild(t);
+  setTimeout(()=>{t.classList.add('hiding');setTimeout(()=>t.remove(),500);},3500);
+}
+
+document.getElementById('wallet-modal').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+updateStats();
+</script>
+</body>
+</html>
