@@ -24,7 +24,7 @@
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   body {
-    background: var(--bg);
+    background: linear-gradient(180deg,#041022 0%, #081123 35%, #0A0E1A 100%);
     color: var(--frost);
     font-family: 'Space Grotesk', sans-serif;
     min-height: 100vh;
@@ -34,18 +34,20 @@
   #bg-canvas {
     position: fixed; top: 0; left: 0;
     width: 100%; height: 100%;
-    pointer-events: none; z-index: 0; opacity: 0.45;
+    pointer-events: none; z-index: 0; opacity: 0.6;
   }
 
-  /* subtle animated gradient overlay behind particles */
+  /* animated overlay behind particles */
   #bg-overlay {
-    position: fixed; inset: 0; pointer-events: none; z-index:  -1;
-    background: radial-gradient(ellipse at 10% 20%, rgba(0,229,255,0.06), transparent 12%), radial-gradient(ellipse at 90% 80%, rgba(153,69,255,0.05), transparent 14%);
-    mix-blend-mode: screen; opacity: 0.9; transform-origin: center;
-    animation: bgFloat 14s ease-in-out infinite;
+    position: fixed; inset: 0; pointer-events: none; z-index: -1;
+    background-image: conic-gradient(from 200deg at 50% 50%, rgba(0,229,255,0.04), rgba(153,69,255,0.03), rgba(0,229,255,0.02), transparent 70%);
+    opacity: 0.95; mix-blend-mode: overlay; transform-origin: center;
+    animation: bgSpin 22s linear infinite, bgFloat 14s ease-in-out infinite;
+    filter: blur(28px);
   }
 
-  @keyframes bgFloat { 0%{transform:translateY(0) scale(1)}50%{transform:translateY(-18px) scale(1.02)}100%{transform:translateY(0) scale(1)} }
+  @keyframes bgSpin { 0%{transform:rotate(0deg)}100%{transform:rotate(360deg)} }
+  @keyframes bgFloat { 0%{transform:translateY(0) scale(1)}50%{transform:translateY(-12px) scale(1.02)}100%{transform:translateY(0) scale(1)} }
 
   /* ── NAV ── */
   nav {
@@ -818,6 +820,7 @@
 <body>
 
 <canvas id="bg-canvas"></canvas>
+<div id="bg-overlay"></div>
 
 <!-- WALLET MODAL -->
 <div class="modal-overlay hidden" id="wallet-modal">
