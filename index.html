@@ -324,10 +324,10 @@
   .chain-icon {
     width: 64px; height: 64px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.8rem; border: 2px solid;
-    transition: transform 0.3s;
-    animation: float 3s ease-in-out infinite;
+    border: 2px solid; transition: transform 0.3s;
+    animation: float 3s ease-in-out infinite; overflow: hidden;
   }
+  .chain-icon img { width: 100%; height: 100%; object-fit: contain; padding: 4px; }
 
   .chain-node:nth-child(1) .chain-icon { animation-delay: 0s; }
   .chain-node:nth-child(3) .chain-icon { animation-delay: 0.5s; }
@@ -838,14 +838,14 @@
   <div class="modal">
     <h3>Connect Wallet</h3>
     <div class="wallet-option" onclick="connectWallet('metamask')">
-      <div class="wallet-option-icon"><img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVG/metamask-fox.svg" alt="MetaMask" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="wallet-option-icon"><img src="https://raw.githubusercontent.com/MetaMask/brand-resources/master/SVGs/metamask-fox.svg" alt="MetaMask" style="width:100%;height:100%;object-fit:contain;"></div>
       <div class="wallet-option-info">
         <h4>MetaMask</h4>
         <p>Ethereum, Arbitrum, EVM-compatible chains</p>
       </div>
     </div>
     <div class="wallet-option" onclick="connectWallet('phantom')">
-      <div class="wallet-option-icon"><img src="https://raw.githubusercontent.com/PhantomApp/brand/main/logo.svg" alt="Phantom" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="wallet-option-icon"><img src="https://raw.githubusercontent.com/phantom-labs/phantom-public-assets/main/phantom-icon.svg" alt="Phantom" style="width:100%;height:100%;object-fit:contain;"></div>
       <div class="wallet-option-info">
         <h4>Phantom</h4>
         <p>Solana, Ethereum, Polygon</p>
@@ -930,7 +930,7 @@
   <!-- BRIDGE VISUALIZER -->
   <div class="bridge-visual">
     <div class="chain-node">
-      <div class="chain-icon eth"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="chain-icon eth"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/1027.png" alt="ETH"></div>
       <div class="chain-label">Ethereum</div>
     </div>
     <div class="bridge-arrow">
@@ -942,7 +942,7 @@
       <div class="bridge-label-text">VIA ARBITRUM BRIDGE</div>
     </div>
     <div class="chain-node">
-      <div class="chain-icon arb"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/11841.png" alt="ARB" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="chain-icon arb"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/11841.png" alt="ARB"></div>
       <div class="chain-label">Arbitrum</div>
     </div>
     <div class="bridge-arrow">
@@ -954,7 +954,7 @@
       <div class="bridge-label-text">CROSS-CHAIN SWAP</div>
     </div>
     <div class="chain-node">
-      <div class="chain-icon sol"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png" alt="SOL" style="width:100%;height:100%;object-fit:contain;"></div>
+      <div class="chain-icon sol"><img src="https://s2.coinmarketcap.com/static/img/coins/64x64/5426.png" alt="SOL"></div>
       <div class="chain-label">Solana</div>
     </div>
     <div class="bridge-arrow">
@@ -966,7 +966,7 @@
       <div class="bridge-label-text">STAKING PROTOCOL</div>
     </div>
     <div class="chain-node">
-      <div class="chain-icon eth" style="border-color:var(--green);">$</div>
+      <div class="chain-icon eth" style="border-color:var(--green);"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M8 16L16 4l8 12-8 4.6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 20.6v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 24h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
       <div class="chain-label">Yield</div>
     </div>
   </div>
