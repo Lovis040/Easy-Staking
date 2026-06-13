@@ -966,7 +966,7 @@
       <div class="bridge-label-text">STAKING PROTOCOL</div>
     </div>
     <div class="chain-node">
-      <div class="chain-icon eth" style="border-color:var(--green);"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><path d="M8 16L16 4l8 12-8 4.6z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M16 20.6v4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M12 24h8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+      <div class="chain-icon eth" style="border-color:var(--green);"><svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg"><text x="16" y="22" font-size="22" font-weight="bold" text-anchor="middle" fill="currentColor">$</text><path d="M16 5v6m0 10v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg></div>
       <div class="chain-label">Yield</div>
     </div>
   </div>
@@ -1289,6 +1289,27 @@ function animateParticles() {
 resizeCanvas(); initParticles(); animateParticles();
 window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
 
+// Initialize prices from CoinGecko on page load
+window.addEventListener('DOMContentLoaded', () => {
+  updateAllTokenPrices();
+  setInterval(updateAllTokenPrices, 60000); // Update every minute
+});
+
+async function updateAllTokenPrices() {
+  const tokenIds = ['eth', 'sol', 'arb', 'uni', 'link', 'bnb', 'matic', 'avax', 'dot', 'op'];
+  const prices = await fetchTokenPricesCoinGecko(tokenIds);
+  tokenIds.forEach(id => {
+    if (prices[id] !== null && prices[id] !== undefined) {
+      const token = TOKENS.find(t => t.id === id);
+      if (token) token.price = prices[id];
+    }
+  });
+  if (walletConnected && walletAssets.length > 0) {
+    renderTokenTable();
+    updateStats();
+  }
+}
+
 // ── WALLET ──
 function openModal()  { document.getElementById('wallet-modal').classList.remove('hidden'); }
 function closeModal() { document.getElementById('wallet-modal').classList.add('hidden'); }
@@ -1521,6 +1542,31 @@ async function fetchChainlinkPrice(chainId, provider) {
   } catch (err) {
     console.error('Chainlink price fetch failed', err);
     return null;
+  }
+}
+
+async function fetchTokenPricesCoinGecko(tokenIds) {
+  const coingeckoMap = {
+    'eth': 'ethereum', 'sol': 'solana', 'arb': 'arbitrum',
+    'uni': 'uniswap', 'link': 'chainlink', 'bnb': 'binancecoin',
+    'matic': 'matic-network', 'avax': 'avalanche-2',
+    'dot': 'polkadot', 'op': 'optimism'
+  };
+  const ids = tokenIds.map(t => coingeckoMap[t]).filter(Boolean).join(',');
+  if (!ids) return {};
+  try {
+    const res = await fetch(`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd`);
+    if (!res.ok) return {};
+    const data = await res.json();
+    const prices = {};
+    tokenIds.forEach(tokenId => {
+      const geckoId = coingeckoMap[tokenId];
+      prices[tokenId] = data[geckoId]?.usd || null;
+    });
+    return prices;
+  } catch (err) {
+    console.error('CoinGecko bulk fetch failed', err);
+    return {};
   }
 }
 
