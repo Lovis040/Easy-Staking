@@ -835,22 +835,22 @@
 <!-- WALLET MODAL -->
 <div class="modal-overlay hidden" id="wallet-modal">
   <div class="modal">
-    <h3>🔗 Connect Wallet</h3>
+    <h3>Connect Wallet</h3>
     <div class="wallet-option" onclick="connectWallet('metamask')">
-      <div class="wallet-option-icon">🦊</div>
+      <div class="wallet-option-icon">M</div>
       <div class="wallet-option-info">
         <h4>MetaMask</h4>
         <p>Ethereum, Arbitrum, EVM-compatible chains</p>
       </div>
     </div>
     <div class="wallet-option" onclick="connectWallet('phantom')">
-      <div class="wallet-option-icon">👻</div>
+      <div class="wallet-option-icon">P</div>
       <div class="wallet-option-info">
         <h4>Phantom</h4>
         <p>Solana, Ethereum, Polygon</p>
       </div>
     </div>
-    <button class="modal-close" onclick="closeModal()">Cancel</button>
+    <button class="btn-secondary" onclick="closeModal()">Cancel</button>
   </div>
 </div>
 <!-- NAV -->
@@ -858,10 +858,10 @@
 <!-- SIGN OUT CONFIRMATION -->
 <div class="modal-overlay hidden" id="signout-modal">
   <div class="modal">
-    <h3>🔒 Abmelden bestätigen</h3>
-    <p style="color:var(--muted);margin-bottom:1rem;">Möchtest du dich wirklich von deiner Wallet trennen? Alle lokal geladenen Daten werden entfernt.</p>
-    <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
-      <button class="modal-close" onclick="closeSignOutModal()">Abbrechen</button>
+    <h3>Abmelden bestätigen</h3>
+    <p style="color:var(--muted);margin-bottom:1.5rem;">Möchtest du dich wirklich von deiner Wallet trennen? Alle lokal geladenen Daten werden entfernt.</p>
+    <div style="display:flex;gap:0.75rem;justify-content:flex-end;">
+      <button class="btn-secondary" onclick="closeSignOutModal()">Abbrechen</button>
       <button class="btn-primary" onclick="signOutConfirmed()">Abmelden</button>
     </div>
   </div>
@@ -869,7 +869,7 @@
 
 <!-- NAV -->
 <nav>
-  <div class="logo">⬡ Easy Staking</div>
+  <div class="logo">Easy Staking</div>
 
   <!-- Tabs sit right next to logo -->
   <div class="nav-tabs">
@@ -893,10 +893,10 @@
       CHAINLINK LIVE
     </div>
     <button class="wallet-btn" id="connect-btn" onclick="openModal()">
-      🔗 Connect Wallet
+      Connect Wallet
     </button>
     <button class="wallet-btn" id="signout-btn" onclick="openSignOutModal()" style="display:none;margin-left:0.5rem;">
-      🚪 Sign out
+      Sign out
     </button>
   </div>
 </nav>
@@ -1360,7 +1360,7 @@ async function connectMetaMask() {
 function handleMetaMaskAccountsChanged(accounts) {
   if (!accounts || accounts.length === 0) {
     walletConnected = false;
-    document.getElementById('connect-btn').textContent = '🔗 Connect Wallet';
+    document.getElementById('connect-btn').textContent = 'Connect Wallet';
     document.getElementById('connect-btn').classList.remove('connected');
     document.getElementById('wallet-address-display').textContent = '';
     const so = document.getElementById('signout-btn'); if (so) so.style.display = 'none';
@@ -1406,7 +1406,7 @@ async function signOutConfirmed() {
   } catch (e) { console.error('Error during disconnect', e); }
 
   walletConnected = false; walletType = null; walletAssets = []; selectedTokens.clear();
-  document.getElementById('connect-btn').textContent = '🔗 Connect Wallet';
+  document.getElementById('connect-btn').textContent = 'Connect Wallet';
   document.getElementById('connect-btn').classList.remove('connected');
   document.getElementById('wallet-address-display').textContent = '';
   const so = document.getElementById('signout-btn'); if (so) so.style.display = 'none';
@@ -1414,7 +1414,7 @@ async function signOutConfirmed() {
   document.getElementById('token-table-wrap').style.display = 'none';
   renderTokenTable(); renderStakedCards(); renderEarnings(); renderRedeem(); updateStats();
   document.getElementById('tab-badge-stake').textContent = TOKENS.length;
-  showToast('✅ Abgemeldet');
+  showToast('Abgemeldet');
 }
 
 async function switchToChain(chainHex) {
