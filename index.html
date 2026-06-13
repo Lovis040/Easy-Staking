@@ -37,6 +37,16 @@
     pointer-events: none; z-index: 0; opacity: 0.45;
   }
 
+  /* subtle animated gradient overlay behind particles */
+  #bg-overlay {
+    position: fixed; inset: 0; pointer-events: none; z-index:  -1;
+    background: radial-gradient(ellipse at 10% 20%, rgba(0,229,255,0.06), transparent 12%), radial-gradient(ellipse at 90% 80%, rgba(153,69,255,0.05), transparent 14%);
+    mix-blend-mode: screen; opacity: 0.9; transform-origin: center;
+    animation: bgFloat 14s ease-in-out infinite;
+  }
+
+  @keyframes bgFloat { 0%{transform:translateY(0) scale(1)}50%{transform:translateY(-18px) scale(1.02)}100%{transform:translateY(0) scale(1)} }
+
   /* ── NAV ── */
   nav {
     position: sticky; top: 0; z-index: 100;
@@ -300,9 +310,9 @@
   }
 
   .chain-icon {
-    width: 48px; height: 48px; border-radius: 50%;
+    width: 64px; height: 64px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    font-size: 1.4rem; border: 2px solid;
+    font-size: 1.8rem; border: 2px solid;
     transition: transform 0.3s;
     animation: float 3s ease-in-out infinite;
   }
@@ -419,23 +429,13 @@
   }
 
   .select-all-btn {
-    padding: 0.45rem 0.9rem; border-radius: 8px;
-    border: none; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s;
-    font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 0.9rem;
-    background: linear-gradient(90deg, rgba(0,229,255,0.12), rgba(153,69,255,0.12));
-    color: var(--frost); box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+    background: none; border: 1px solid var(--border);
+    color: var(--muted); font-family: 'Space Grotesk', sans-serif;
+    font-size: 0.78rem; padding: 0.3rem 0.75rem;
+    border-radius: 6px; cursor: pointer; transition: all 0.2s;
   }
 
-  .select-all-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 24px rgba(0,229,255,0.08); }
-  .select-all-btn:focus-visible { outline: 3px solid rgba(0,229,255,0.18); outline-offset: 3px; }
-
-  /* Secondary (less prominent) variant for 'None' buttons */
-  .select-all-btn.secondary {
-    background: none; border: 1px solid var(--border); color: var(--muted);
-    font-weight: 600; padding: 0.35rem 0.7rem; box-shadow: none;
-  }
-
-  .select-all-btn.secondary:hover { border-color: var(--cyan); color: var(--cyan); transform: none; }
+  .select-all-btn:hover { border-color: var(--cyan); color: var(--cyan); }
 
   /* ── TOKEN TABLE ── */
   .token-table { width: 100%; border-collapse: collapse; }
@@ -464,9 +464,9 @@
   .token-name { display: flex; align-items: center; gap: 0.75rem; }
 
   .token-icon {
-    width: 32px; height: 32px; border-radius: 50%;
+    width: 44px; height: 44px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; overflow: hidden; padding: 5px;
+    flex-shrink: 0; overflow: hidden; padding: 6px;
     transition: transform 0.2s;
   }
   .token-icon svg { width: 100%; height: 100%; display: block; }
@@ -484,7 +484,7 @@
   .token-icon.dot-color  { background: rgba(230,0,122,0.12); }
   .token-icon.op-color   { background: rgba(255,4,32,0.12); }
 
-  .token-ticker { font-family:'Space Mono',monospace; font-size:0.78rem; font-weight:700; color:var(--frost); }
+  .token-ticker { font-family:'Space Mono',monospace; font-size:0.95rem; font-weight:700; color:var(--frost); }
   .token-chain  { font-size: 0.68rem; color: var(--muted); }
 
   .price-change.pos { color: var(--green); }
@@ -590,7 +590,7 @@
 
   .staked-card {
     background: var(--surface); border: 1px solid var(--border);
-    border-radius: 14px; padding: 1.25rem 1.5rem;
+    border-radius: 14px; padding: 1.5rem 1.75rem;
     transition: border-color 0.25s, transform 0.25s, box-shadow 0.25s;
     animation: fadeSlideUp 0.5s ease both;
   }
@@ -646,7 +646,7 @@
 
   .period-pill.active { background: var(--panel); color: var(--cyan); border-color: var(--cyan); }
 
-  #earnings-canvas { width: 100%; height: 180px; display: block; }
+  #earnings-canvas { width: 100%; height: 240px; display: block; }
 
   /* ── REDEEM ── */
   .redeem-header-box {
@@ -960,8 +960,8 @@
           Wallet Assets
           <span id="wallet-address-display" style="font-family:'Space Mono',monospace;font-size:0.7rem;color:var(--muted);"></span>
         </h3>
-        <div style="display:flex;gap:0.5rem;align-items:center;">
-          <button class="select-all-btn" id="select-all-wallet-btn" aria-label="Select all wallet assets" title="Select all assets" onclick="selectAll()">Select All</button>
+        <div style="display:flex;gap:0.75rem;align-items:center;">
+          <button class="select-all-btn" id="select-all-wallet-btn" aria-label="Select all wallet assets" title="Select all assets" onclick="selectAll()">🔘 Select All</button>
           <button class="select-all-btn secondary" aria-label="Deselect all wallet assets" title="Deselect all" onclick="deselectAll()">None</button>
         </div>
       </div>
@@ -1109,9 +1109,11 @@
     </div>
 
     <div class="wallet-panel">
-      <div class="wallet-panel-header">
+      <div class="wallet-panel-header" style="display:flex;align-items:center;justify-content:space-between;gap:0.5rem;">
         <h3>Redeemable Positions</h3>
-        <button class="select-all-btn" id="select-all-redeem-btn" aria-label="Select all redeemable positions" title="Select all redeemable positions" onclick="selectAllRedeem()">Select All</button>
+        <div>
+          <button class="select-all-btn" id="select-all-redeem-btn" aria-label="Select all redeemable positions" title="Select all redeemable positions" onclick="selectAllRedeem()">🔘 Select All</button>
+        </div>
       </div>
       <div style="overflow-x:auto;">
         <table class="token-table">
@@ -1182,15 +1184,15 @@ function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = wind
 
 function initParticles() {
   particles = [];
-  for (let i = 0; i < 80; i++) {
+  for (let i = 0; i < 110; i++) {
     particles.push({
       x: Math.random() * canvas.width,
       y: Math.random() * canvas.height,
-      r: Math.random() * 1.8 + 0.3,
-      vx: (Math.random() - 0.5) * 0.35,
-      vy: (Math.random() - 0.5) * 0.35,
-      color: Math.random() > 0.5 ? '#00E5FF' : '#9945FF',
-      alpha: Math.random() * 0.45 + 0.05,
+      r: Math.random() * 2.8 + 0.6,
+      vx: (Math.random() - 0.5) * 0.6,
+      vy: (Math.random() - 0.5) * 0.6,
+      color: Math.random() > 0.6 ? '#00E5FF' : '#9945FF',
+      alpha: Math.random() * 0.6 + 0.08,
       pulse: Math.random() * Math.PI * 2,
     });
   }
@@ -1217,13 +1219,13 @@ function animateParticles() {
       const dx = particles[i].x - particles[j].x;
       const dy = particles[i].y - particles[j].y;
       const dist = Math.sqrt(dx*dx + dy*dy);
-      if (dist < 90) {
+      if (dist < 110) {
         ctx.beginPath();
         ctx.moveTo(particles[i].x, particles[i].y);
         ctx.lineTo(particles[j].x, particles[j].y);
         ctx.strokeStyle = '#00E5FF';
-        ctx.globalAlpha = (1 - dist / 90) * 0.06;
-        ctx.lineWidth = 0.5;
+        ctx.globalAlpha = (1 - dist / 110) * 0.08;
+        ctx.lineWidth = 0.8;
         ctx.stroke();
         ctx.globalAlpha = 1;
       }
