@@ -1262,25 +1262,132 @@ window.addEventListener('resize', () => { resizeCanvas(); initParticles(); });
 function openModal()  { document.getElementById('wallet-modal').classList.remove('hidden'); }
 function closeModal() { document.getElementById('wallet-modal').classList.add('hidden'); }
 
-function connectWallet(type) {
-  walletType = type;
-  walletConnected = true;
-  closeModal();
-  const btn  = document.getElementById('connect-btn');
-  const addr = type === 'metamask' ? '0x4f3a...8c2d' : 'Dh7K...mXpQ';
-  btn.innerHTML = `<div class="dot"></div>${type === 'metamask' ? '🦊' : '👻'} ${addr}`;
+async function connectWallet(type) {
+  if (type === 'metamask') {
+    await connectMetaMask();
+  } else if (type === 'phantom') {
+    await connectPhantom();
+  }
+}
+
+async function connectMetaMask() {
+  if (!window.ethereum || !window.ethereum.isMetaMask) {
+    showToast('MetaMask not detected. Please install MetaMask first.');
+    return;
+  }
+
+  try {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const address = accounts[0];
+    const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+    const network = getEvmNetworkName(chainId);
+    const supported = isNetworkSupported(chainId);
+
+    if (!supported) {
+      showToast(`⚠️ Unsupported network: ${network}. Please switch to Ethereum, Arbitrum, or Arbitrum Sepolia.`);
+    }
+
+    walletType = 'metamask';
+    walletConnected = true;
+    closeModal();
+    updateWalletUI(address, network, '🦊');
+
+    if (accounts.length > 0) {
+      window.ethereum.on('accountsChanged', handleMetaMaskAccountsChanged);
+      window.ethereum.on('chainChanged', handleMetaMaskChainChanged);
+    }
+
+    document.getElementById('stake-connect-prompt').style.display = 'none';
+    document.getElementById('token-table-wrap').style.display = 'block';
+    renderTokenTable();
+    renderStakedCards();
+    renderEarnings();
+    renderRedeem();
+    updateStats();
+    document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+    showToast(`✅ MetaMask connected · ${network}`);
+    setTimeout(simulatePriceUpdates, 3000);
+  } catch (error) {
+    console.error(error);
+    showToast('MetaMask connection failed.');
+  }
+}
+
+function handleMetaMaskAccountsChanged(accounts) {
+  if (!accounts || accounts.length === 0) {
+    walletConnected = false;
+    document.getElementById('connect-btn').textContent = '🔗 Connect Wallet';
+    document.getElementById('connect-btn').classList.remove('connected');
+    document.getElementById('wallet-address-display').textContent = '';
+    return;
+  }
+  const address = accounts[0];
+  const chainId = window.ethereum ? window.ethereum.chainId : null;
+  const network = chainId ? getEvmNetworkName(chainId) : 'Unknown network';
+  updateWalletUI(address, network, '🦊');
+  showToast(`✅ MetaMask account switched to ${formatAddress(address)}`);
+}
+
+async function handleMetaMaskChainChanged(chainId) {
+  const address = window.ethereum.selectedAddress || '';
+  const network = getEvmNetworkName(chainId);
+  updateWalletUI(address, network, '🦊');
+  showToast(`🔄 Network switched to ${network}`);
+}
+
+async function connectPhantom() {
+  if (!window.solana || !window.solana.isPhantom) {
+    showToast('Phantom not detected. Please install Phantom first.');
+    return;
+  }
+
+  try {
+    const resp = await window.solana.connect();
+    const address = resp.publicKey.toString();
+    walletType = 'phantom';
+    walletConnected = true;
+    closeModal();
+    updateWalletUI(address, 'Solana Mainnet Beta', '👻');
+    document.getElementById('stake-connect-prompt').style.display = 'none';
+    document.getElementById('token-table-wrap').style.display = 'block';
+    renderTokenTable();
+    renderStakedCards();
+    renderEarnings();
+    renderRedeem();
+    updateStats();
+    document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+    showToast('✅ Phantom connected · Solana Mainnet Beta');
+    setTimeout(simulatePriceUpdates, 3000);
+  } catch (error) {
+    console.error(error);
+    showToast('Phantom connection failed.');
+  }
+}
+
+function updateWalletUI(address, network, icon) {
+  const btn = document.getElementById('connect-btn');
+  btn.innerHTML = `<div class="dot"></div>${icon} ${formatAddress(address)}`;
   btn.classList.add('connected');
-  document.getElementById('wallet-address-display').textContent = `(${addr})`;
-  document.getElementById('stake-connect-prompt').style.display = 'none';
-  document.getElementById('token-table-wrap').style.display = 'block';
-  renderTokenTable();
-  renderStakedCards();
-  renderEarnings();
-  renderRedeem();
-  updateStats();
-  document.getElementById('tab-badge-stake').textContent = TOKENS.length;
-  showToast(`✅ ${type === 'metamask' ? 'MetaMask' : 'Phantom'} connected · ${TOKENS.length} assets detected`);
-  setTimeout(simulatePriceUpdates, 3000);
+  document.getElementById('wallet-address-display').textContent = `(${formatAddress(address)} · ${network})`;
+}
+
+function formatAddress(address) {
+  if (!address) return '';
+  return address.length > 12 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+}
+
+function getEvmNetworkName(chainId) {
+  switch (chainId) {
+    case '0x1': return 'Ethereum Mainnet';
+    case '0xa4b1': return 'Arbitrum One';
+    case '0x66eed': return 'Arbitrum Sepolia';
+    case '0xaa36a7': return 'Sepolia';
+    default: return `Unknown (${chainId})`;
+  }
+}
+
+function isNetworkSupported(chainId) {
+  return ['0x1', '0xa4b1', '0x66eed'].includes(chainId);
 }
 
 // ── PRICE SIMULATION ── only patches cells, never rebuilds the table
