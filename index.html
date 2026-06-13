@@ -133,6 +133,16 @@
     background: #375BD2; animation: pulse 1.5s infinite;
   }
 
+  .cl-badge {
+    display:inline-flex; align-items:center; justify-content:center;
+    background: #375BD2; color: white; font-size:0.6rem; font-family:'Space Mono',monospace;
+    padding: 0.08rem 0.28rem; border-radius: 3px; border: 1px solid rgba(255,255,255,0.06);
+  }
+
+  .cl-fallback { color: var(--muted); font-size:0.7rem; }
+  .pyth-badge { display:inline-flex; align-items:center; justify-content:center; background:#14F195; color:#081123; font-size:0.6rem; font-family:'Space Mono',monospace; padding:0.08rem 0.28rem; border-radius:3px; }
+  .cg-badge { display:inline-flex; align-items:center; justify-content:center; background:#FF8A00; color:#081123; font-size:0.6rem; font-family:'Space Mono',monospace; padding:0.08rem 0.28rem; border-radius:3px; }
+
   .wallet-btn {
     padding: 0.5rem 1.25rem; border-radius: 8px;
     border: 1px solid var(--border);
@@ -843,6 +853,19 @@
     <button class="modal-close" onclick="closeModal()">Cancel</button>
   </div>
 </div>
+<!-- NAV -->
+
+<!-- SIGN OUT CONFIRMATION -->
+<div class="modal-overlay hidden" id="signout-modal">
+  <div class="modal">
+    <h3>🔒 Abmelden bestätigen</h3>
+    <p style="color:var(--muted);margin-bottom:1rem;">Möchtest du dich wirklich von deiner Wallet trennen? Alle lokal geladenen Daten werden entfernt.</p>
+    <div style="display:flex;gap:0.6rem;justify-content:flex-end;">
+      <button class="modal-close" onclick="closeSignOutModal()">Abbrechen</button>
+      <button class="btn-primary" onclick="signOutConfirmed()">Abmelden</button>
+    </div>
+  </div>
+</div>
 
 <!-- NAV -->
 <nav>
@@ -871,6 +894,9 @@
     </div>
     <button class="wallet-btn" id="connect-btn" onclick="openModal()">
       🔗 Connect Wallet
+    </button>
+    <button class="wallet-btn" id="signout-btn" onclick="openSignOutModal()" style="display:none;margin-left:0.5rem;">
+      🚪 Sign out
     </button>
   </div>
 </nav>
@@ -1163,12 +1189,16 @@
 
 <div id="toast-container"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.min.js"></script>
+<script src="https://unpkg.com/@solana/web3.js@1.73.0/lib/index.iife.min.js"></script>
 <script>
 // ── STATE ──
 let walletConnected = false;
 let walletType = null;
 let selectedTokens = new Set();
 let activeProtocols = new Set(['uniswap','pancake']);
+let walletAssets = [];
+let currentNetwork = null;
 
 const TOKEN_LOGOS = {
   eth:   `<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M16 4l-8.5 14 8.5 4.7 8.5-4.7L16 4z" fill="#8A92B2"/><path d="M7.5 18l8.5 4.7V4L7.5 18z" fill="#62688F"/><path d="M16 22.7l8.5-4.7-8.5-10.7v15.4z" fill="#454A75"/><path d="M7.5 19.5l8.5 8.5V24L7.5 19.5z" fill="#8A92B2"/><path d="M16 24v4l8.5-8.5L16 24z" fill="#62688F"/><path d="M16 24l-8.5-4.5 8.5 8.5V24z" fill="#454A75"/></svg>`,
@@ -1284,7 +1314,20 @@ async function connectMetaMask() {
     const supported = isNetworkSupported(chainId);
 
     if (!supported) {
-      showToast(`⚠️ Unsupported network: ${network}. Please switch to Ethereum, Arbitrum, or Arbitrum Sepolia.`);
+      showToast(`⚠️ Unsupported network: ${network}. Attempting to switch to Ethereum Mainnet...`);
+      try {
+        await switchToChain('0x1');
+        const newChain = await window.ethereum.request({ method: 'eth_chainId' });
+        const newNetwork = getEvmNetworkName(newChain);
+        if (!isNetworkSupported(newChain)) {
+          showToast(`⚠️ Could not switch to a supported network. Current: ${newNetwork}`);
+        } else {
+          showToast(`🔄 Switched to ${newNetwork}`);
+        }
+      } catch (e) {
+        console.error('Network switch failed', e);
+        showToast('⚠️ Please switch your MetaMask network to Ethereum or Arbitrum manually.');
+      }
     }
 
     walletType = 'metamask';
@@ -1299,12 +1342,13 @@ async function connectMetaMask() {
 
     document.getElementById('stake-connect-prompt').style.display = 'none';
     document.getElementById('token-table-wrap').style.display = 'block';
+    await scanWalletAssets();
     renderTokenTable();
     renderStakedCards();
     renderEarnings();
     renderRedeem();
     updateStats();
-    document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+    document.getElementById('tab-badge-stake').textContent = walletAssets.length ? walletAssets.length : TOKENS.length;
     showToast(`✅ MetaMask connected · ${network}`);
     setTimeout(simulatePriceUpdates, 3000);
   } catch (error) {
@@ -1319,6 +1363,10 @@ function handleMetaMaskAccountsChanged(accounts) {
     document.getElementById('connect-btn').textContent = '🔗 Connect Wallet';
     document.getElementById('connect-btn').classList.remove('connected');
     document.getElementById('wallet-address-display').textContent = '';
+    const so = document.getElementById('signout-btn'); if (so) so.style.display = 'none';
+    document.getElementById('stake-connect-prompt').style.display = 'block';
+    document.getElementById('token-table-wrap').style.display = 'none';
+    renderTokenTable(); updateStats();
     return;
   }
   const address = accounts[0];
@@ -1333,6 +1381,71 @@ async function handleMetaMaskChainChanged(chainId) {
   const network = getEvmNetworkName(chainId);
   updateWalletUI(address, network, '🦊');
   showToast(`🔄 Network switched to ${network}`);
+  // Re-scan assets for the new network
+  try { await scanWalletAssets(); renderTokenTable(); updateStats(); } catch (e) { console.error('Rescan after chain change failed', e); }
+}
+
+function openSignOutModal() {
+  document.getElementById('signout-modal').classList.remove('hidden');
+}
+
+function closeSignOutModal() {
+  document.getElementById('signout-modal').classList.add('hidden');
+}
+
+async function signOutConfirmed() {
+  closeSignOutModal();
+  try {
+    if (walletType === 'metamask' && window.ethereum) {
+      try { window.ethereum.removeListener('accountsChanged', handleMetaMaskAccountsChanged); } catch(e){}
+      try { window.ethereum.removeListener('chainChanged', handleMetaMaskChainChanged); } catch(e){}
+    }
+    if (walletType === 'phantom' && window.solana && window.solana.isPhantom) {
+      try { await window.solana.disconnect(); } catch (e) { console.warn('Phantom disconnect failed', e); }
+    }
+  } catch (e) { console.error('Error during disconnect', e); }
+
+  walletConnected = false; walletType = null; walletAssets = []; selectedTokens.clear();
+  document.getElementById('connect-btn').textContent = '🔗 Connect Wallet';
+  document.getElementById('connect-btn').classList.remove('connected');
+  document.getElementById('wallet-address-display').textContent = '';
+  const so = document.getElementById('signout-btn'); if (so) so.style.display = 'none';
+  document.getElementById('stake-connect-prompt').style.display = 'block';
+  document.getElementById('token-table-wrap').style.display = 'none';
+  renderTokenTable(); renderStakedCards(); renderEarnings(); renderRedeem(); updateStats();
+  document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+  showToast('✅ Abgemeldet');
+}
+
+async function switchToChain(chainHex) {
+  if (!window.ethereum) throw new Error('No ethereum provider');
+  try {
+    await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainHex }] });
+    return true;
+  } catch (switchError) {
+    // 4902: Unrecognized chain — try to add Arbitrum if requested
+    if (switchError.code === 4902 && chainHex === '0xa4b1') {
+      try {
+        await window.ethereum.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: '0xa4b1',
+            chainName: 'Arbitrum One',
+            nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+            rpcUrls: ['https://arb1.arbitrum.io/rpc'],
+            blockExplorerUrls: ['https://arbiscan.io']
+          }]
+        });
+        // try switch again
+        await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: chainHex }] });
+        return true;
+      } catch (addErr) {
+        console.error('Add chain failed', addErr);
+        throw addErr;
+      }
+    }
+    throw switchError;
+  }
 }
 
 async function connectPhantom() {
@@ -1350,12 +1463,13 @@ async function connectPhantom() {
     updateWalletUI(address, 'Solana Mainnet Beta', '👻');
     document.getElementById('stake-connect-prompt').style.display = 'none';
     document.getElementById('token-table-wrap').style.display = 'block';
+    await scanWalletAssets();
     renderTokenTable();
     renderStakedCards();
     renderEarnings();
     renderRedeem();
     updateStats();
-    document.getElementById('tab-badge-stake').textContent = TOKENS.length;
+    document.getElementById('tab-badge-stake').textContent = walletAssets.length ? walletAssets.length : TOKENS.length;
     showToast('✅ Phantom connected · Solana Mainnet Beta');
     setTimeout(simulatePriceUpdates, 3000);
   } catch (error) {
@@ -1369,11 +1483,120 @@ function updateWalletUI(address, network, icon) {
   btn.innerHTML = `<div class="dot"></div>${icon} ${formatAddress(address)}`;
   btn.classList.add('connected');
   document.getElementById('wallet-address-display').textContent = `(${formatAddress(address)} · ${network})`;
+  const so = document.getElementById('signout-btn'); if (so) so.style.display = 'inline-flex';
 }
 
 function formatAddress(address) {
   if (!address) return '';
   return address.length > 12 ? `${address.slice(0, 6)}...${address.slice(-4)}` : address;
+}
+
+async function scanWalletAssets() {
+  if (walletType === 'metamask') {
+    await scanEvmWallet();
+  } else if (walletType === 'phantom') {
+    await scanSolanaWallet();
+  }
+}
+
+function getChainlinkFeedAddress(chainId) {
+  switch (chainId) {
+    case '0x1': return '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419';
+    case '0xa4b1': return '0x639Fe6ab55C921f74e7fac1ee960c0B6293ba612';
+    case '0x66eed': return '0x5f4ec3df9cbd43714fe2740f5e3616155c5b8419';
+    default: return null;
+  }
+}
+
+async function fetchChainlinkPrice(chainId, provider) {
+  const address = getChainlinkFeedAddress(chainId);
+  if (!address) return null;
+  const oracle = new ethers.Contract(address, [
+    'function latestRoundData() view returns (uint80 roundId, int256 answer, uint256 startedAt, uint256 updatedAt, uint80 answeredInRound)'
+  ], provider);
+  try {
+    const [, answer] = await oracle.latestRoundData();
+    return parseFloat(ethers.utils.formatUnits(answer, 8));
+  } catch (err) {
+    console.error('Chainlink price fetch failed', err);
+    return null;
+  }
+}
+
+async function scanEvmWallet() {
+  if (!window.ethereum) return;
+  const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+  const networkName = getEvmNetworkName(chainId);
+  currentNetwork = networkName;
+  const provider = new ethers.providers.Web3Provider(window.ethereum);
+  const address = await provider.getSigner().getAddress();
+
+  const nativeBalance = await provider.getBalance(address);
+  const ethValue = parseFloat(ethers.utils.formatEther(nativeBalance));
+  const chainLabel = networkName.includes('Arbitrum') ? 'Arbitrum' : networkName.includes('Ethereum') ? 'Ethereum' : networkName;
+  const oraclePrice = await fetchChainlinkPrice(chainId, provider);
+  const price = oraclePrice || TOKENS.find(t => t.id === 'eth')?.price || 0;
+
+  walletAssets = [
+    {
+      id: 'eth',
+      symbol: 'ETH',
+      name: networkName,
+      chain: chainLabel,
+      balance: ethValue,
+      price,
+      source: oraclePrice ? 'Chainlink' : 'Fallback',
+      protocol: 'Auto',
+      apy: 4.2
+    }
+  ];
+}
+
+async function scanSolanaWallet() {
+  if (!window.solana) return;
+  currentNetwork = 'Solana Mainnet Beta';
+  const connection = new solanaWeb3.Connection(solanaWeb3.clusterApiUrl('mainnet-beta'), 'confirmed');
+  const lamports = await connection.getBalance(window.solana.publicKey);
+  const solValue = lamports / solanaWeb3.LAMPORTS_PER_SOL;
+  // try Pyth (preferred) then fallback to CoinGecko
+  let price = null;
+  let source = null;
+  try {
+    // Pyth Core upgrade requires API key; skipping direct Pyth Pro call here
+    // Fallback to CoinGecko for public SOL/USD price
+    price = await fetchSolPriceCoinGecko();
+    if (price) source = 'CoinGecko';
+  } catch (e) {
+    console.error('SOL price fetch failed', e);
+  }
+  if (!price) price = TOKENS.find(t => t.id === 'sol')?.price || 0;
+
+  walletAssets = [
+    {
+      id: 'sol',
+      symbol: 'SOL',
+      name: 'Solana Mainnet Beta',
+      chain: 'Solana',
+      balance: solValue,
+      price,
+      source: source,
+      protocol: 'Auto',
+      apy: 6.8
+    }
+  ];
+}
+
+async function fetchSolPriceCoinGecko() {
+  try {
+    const res = await fetch('https://api.coingecko.com/api/v3/simple/price?ids=solana&vs_currencies=usd');
+    if (!res.ok) return null;
+    const j = await res.json();
+    return j?.solana?.usd ? parseFloat(j.solana.usd) : null;
+  } catch (err) {
+    console.error('CoinGecko fetch failed', err);
+    return null;
+  }
+
 }
 
 function getEvmNetworkName(chainId) {
@@ -1393,11 +1616,14 @@ function isNetworkSupported(chainId) {
 // ── PRICE SIMULATION ── only patches cells, never rebuilds the table
 function simulatePriceUpdates() {
   setInterval(() => {
-    TOKENS.forEach(t => {
-      t.price = Math.max(0.01, t.price + (Math.random() - 0.498) * t.price * 0.002);
-    });
+    if (!walletAssets.length) {
+      TOKENS.forEach(t => {
+        t.price = Math.max(0.01, t.price + (Math.random() - 0.498) * t.price * 0.002);
+      });
+    }
     if (!walletConnected) return;
-    TOKENS.forEach(t => {
+    const sourceTokens = walletAssets.length ? walletAssets : TOKENS;
+    sourceTokens.forEach(t => {
       const row = document.querySelector(`tr[data-id="${t.id}"]`);
       if (!row) return;
       const cells = row.querySelectorAll('td');
@@ -1415,7 +1641,8 @@ function simulatePriceUpdates() {
 function fmt(n) { return n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 function updateStats() {
-  const totalPortfolio = TOKENS.reduce((s,t) => s + t.price * t.balance, 0);
+  const tokens = walletAssets.length ? walletAssets : TOKENS;
+  const totalPortfolio = tokens.reduce((s,t) => s + t.price * t.balance, 0);
   const totalStaked    = TOKENS.reduce((s,t) => s + t.price * t.staked,  0);
   const totalEarned    = TOKENS.reduce((s,t) => s + t.price * t.earned,  0);
   animateValue('total-portfolio', totalPortfolio);
@@ -1439,9 +1666,10 @@ function animateValue(id, target) {
 let tokenTableRendered = false;
 function renderTokenTable() {
   const tbody = document.getElementById('token-tbody');
+  const tokens = walletAssets.length ? walletAssets : TOKENS;
   const firstTime = !tokenTableRendered;
   tokenTableRendered = true;
-  tbody.innerHTML = TOKENS.map((t,idx) => {
+  tbody.innerHTML = tokens.map((t,idx) => {
     const val = t.price * t.balance;
     const chg = ((Math.random() - 0.48) * 3).toFixed(2);
     const chgClass = parseFloat(chg) >= 0 ? 'pos' : 'neg';
@@ -1457,7 +1685,10 @@ function renderTokenTable() {
         </div>
       </td>
       <td>
-        <div style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(t.price)}</div>
+        <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div style="font-family:'Space Mono',monospace;font-size:0.82rem;">$${fmt(t.price)}</div>
+          ${t.source==='Chainlink' ? '<span class="cl-badge">CL</span>' : t.source==='Pyth' ? '<span class="pyth-badge">PY</span>' : t.source==='CoinGecko' ? '<span class="cg-badge">CG</span>' : ''}
+        </div>
         <div class="price-change ${chgClass}" style="font-size:0.7rem;">${chgSign}${chg}%</div>
       </td>
       <td style="font-family:'Space Mono',monospace;font-size:0.82rem;">${t.balance.toLocaleString()} ${t.symbol}</td>
@@ -1477,11 +1708,16 @@ function toggleToken(id, row) {
   updateSelectedSummary();
 }
 
-function selectAll()   { TOKENS.forEach(t => selectedTokens.add(t.id));  renderTokenTable(); }
+function selectAll() {
+  const tokens = walletAssets.length ? walletAssets : TOKENS;
+  tokens.forEach(t => selectedTokens.add(t.id));
+  renderTokenTable();
+}
 function deselectAll() { selectedTokens.clear(); renderTokenTable(); }
 
 function updateSelectedSummary() {
-  const sel = TOKENS.filter(t => selectedTokens.has(t.id));
+  const tokens = walletAssets.length ? walletAssets : TOKENS;
+  const sel = tokens.filter(t => selectedTokens.has(t.id));
   const v   = sel.reduce((s,t) => s + t.price * t.balance, 0);
   document.getElementById('selected-value').textContent = `$${fmt(v)} · ${sel.length} coins`;
   document.getElementById('stake-btn').disabled = sel.length === 0;
