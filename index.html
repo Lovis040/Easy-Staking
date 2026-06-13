@@ -496,10 +496,10 @@
   .token-icon {
     width: 44px; height: 44px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0; overflow: hidden; padding: 6px;
+    flex-shrink: 0; overflow: hidden; padding: 4px;
     transition: transform 0.2s;
   }
-  .token-icon svg { width: 100%; height: 100%; display: block; }
+  .token-icon svg { width: 100%; height: 100%; display: block; object-fit: contain; }
 
   .token-row:hover .token-icon { transform: scale(1.15); }
 
@@ -770,7 +770,8 @@
 
   .wallet-option:hover { border-color: var(--cyan); background: rgba(0,229,255,0.04); transform: translateX(4px); }
 
-  .wallet-option-icon { font-size: 1.8rem; }
+  .wallet-option-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .wallet-option-icon svg { width: 100%; height: 100%; display: block; }
   .wallet-option-info h4 { font-size: 0.9rem; font-weight: 600; }
   .wallet-option-info p { font-size: 0.75rem; color: var(--muted); margin-top: 0.2rem; }
 
@@ -837,14 +838,14 @@
   <div class="modal">
     <h3>Connect Wallet</h3>
     <div class="wallet-option" onclick="connectWallet('metamask')">
-      <div class="wallet-option-icon">M</div>
+      <div class="wallet-option-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#F6851B"/><path d="M33.56 8.34L21.83 15.47 24.24 9.7Z" fill="#CDBDB2" stroke="#F6851B" stroke-width="0.5"/><path d="M6.44 8.34L18.17 15.47 15.76 9.7Z" fill="#CDBDB2" stroke="#F6851B" stroke-width="0.5"/><path d="M29.34 24.24L26.52 29.21 32.9 30.81 34.55 24.39Z" fill="#F6851B" stroke="#F6851B" stroke-width="0.5"/><path d="M10.66 24.24L7.1 24.39 8.75 30.81 15.48 29.21Z" fill="#F6851B" stroke="#F6851B" stroke-width="0.5"/><path d="M15.76 18.89L14.61 20.67 20.92 21.1 20.75 14.69Z" fill="#F6851B" stroke="#F6851B" stroke-width="0.5"/><path d="M24.24 18.89L20.75 14.69 20.92 21.1 27.39 20.67Z" fill="#F6851B" stroke="#F6851B" stroke-width="0.5"/><path d="M15.48 29.21L20.45 26.88 16.76 24.55Z" fill="#CDBDB2" stroke="#F6851B" stroke-width="0.5"/><path d="M24.52 29.21L23.24 24.55 20.45 26.88Z" fill="#CDBDB2" stroke="#F6851B" stroke-width="0.5"/></svg></div>
       <div class="wallet-option-info">
         <h4>MetaMask</h4>
         <p>Ethereum, Arbitrum, EVM-compatible chains</p>
       </div>
     </div>
     <div class="wallet-option" onclick="connectWallet('phantom')">
-      <div class="wallet-option-icon">P</div>
+      <div class="wallet-option-icon"><svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg"><rect width="40" height="40" rx="8" fill="#14F195"/><path d="M20 6C12.26 6 6 12.26 6 20s6.26 14 14 14 14-6.26 14-14-6.26-14-14-14zm0 2c6.63 0 12 5.37 12 12s-5.37 12-12 12-12-5.37-12-12 5.37-12 12-12zm3.5 7c-1.93 0-3.5 1.57-3.5 3.5S21.57 22 23.5 22 27 20.43 27 18.5 25.43 15 23.5 15zm-7 0c-1.93 0-3.5 1.57-3.5 3.5S12.57 22 14.5 22 18 20.43 18 18.5 16.43 15 14.5 15z" fill="#0A0E1A"/></svg></div>
       <div class="wallet-option-info">
         <h4>Phantom</h4>
         <p>Solana, Ethereum, Polygon</p>
